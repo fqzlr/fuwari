@@ -11,6 +11,7 @@ description: 关于如何联系二叉树树~
 
 # 如果你知道如何加入Telegram群组
 直接点击此链接加入： https://t.me/+blyHrp_GihhhMWVl
+
 如果你是新号或者显示链接已失效，大概率是你的账号被风控了，可以加我tg： https://t.me/AcoFork 我来手动拉你进群
 
 # 如果你没有一个科学上网工具
