@@ -70,7 +70,7 @@ const jsonLd = {
             <!-- title -->
             <div class="relative onload-animation">                <div
                     data-pagefind-body data-pagefind-weight="10" data-pagefind-meta="title"
-                    class="transition w-full block font-bold mb-3
+                    class="transition w-full flex items-center font-bold mb-3
                     text-3xl md:text-[2.25rem]/[2.75rem]
                     text-black/90 dark:text-white/90
                     md:before:w-1 before:h-5 before:rounded-md before:bg-[var(--primary)]
@@ -81,7 +81,7 @@ const jsonLd = {
                             <Icon name="material-symbols:push-pin" class="mr-1.5 text-base" /> 置顶
                         </span>
                     )}
-                    {entry.data.title}
+                    <span>{entry.data.title}</span>
                 </div>
             </div>
 
