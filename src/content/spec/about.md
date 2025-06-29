@@ -5,16 +5,20 @@
 本站的所有访问节点： 
 
 > 如果您访问的域名并不在下述列表中，您的连接可能会被监听或者网站页面被篡改，请切换到我们的官方节点继续安全访问
+> 
+> 一般情况下，所有节点的内容应当都是同步的，如果您发现部分节点内容过时，请[联系二叉树树](https://s.afo.im/tit)
 
-- 主节点1： https://www.afo.im （EdgeOne CDN Free）
+- 主节点1： https://www.afo.im （EdgeOne CDN Free回源Cloudflare）
 
-- 主节点2： https://afo.im （EdgeOne CDN Free）
+- 主节点2： https://afo.im （EdgeOne CDN Free回源Cloudflare 301到主节点1）
+
+- https://eopage-blog.afo.im （EdgeOne CDN Free回源EdgeOne Page）
 
 - https://cf-blog.afo.im （Cloudflare）
 
-- https://eo3-blog.afo.im （EdgeOne CDN）
-
 - [https://eo2-blog.afo.im](https://eo2-blog.afo.im) （EdgeOne Page）
+
+- https://netlify-blog.afo.im （Netlify）
 
 - https://vercel-blog.afo.im （Vercel）
 
