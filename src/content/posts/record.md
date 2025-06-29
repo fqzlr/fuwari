@@ -6,7 +6,7 @@ image: https://hpic.072103.xyz
 lang: zh_CN
 published: 1999-01-01
 tags:
-- Record
+- 记录
 title: 记录
 ---
 # 关于我的超链接
