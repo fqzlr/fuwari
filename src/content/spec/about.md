@@ -20,6 +20,8 @@ IP站点（实验性）：
 
 - 谷歌搜索 `site rbq.*` 找到的： https://saltedfishes.com
 
+- 雾创岛： https://www.tr0.cn/
+
 - 在***教了我很多的好朋友： https://ie.cx
 
 - 晓晴博客： https://www.toubiec.cn/
