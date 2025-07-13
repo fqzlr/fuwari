@@ -31,6 +31,8 @@ title: N款CDN服务商的优缺点比较
 
 零成本用上。注册无门槛，延迟良好。用量限制较严格。仅支持IPv4回源。默认的 `*.vercel.app` 在国内会被SNI阻断，需要绑定自己的域名
 
+**推荐IP：** 76.76.21.21
+
 ![](https://sb-r2.afo.im/myblog/img/14654577-5c25-4136-bb06-9e10d1945ae2.webp)
 
 ![](https://sb-r2.afo.im/myblog/img/eb1ef62c-f50c-4f89-a287-c74e18353b9c.webp)
