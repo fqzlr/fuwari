@@ -2,7 +2,7 @@
 category: 记录
 description: 一些记录，不定时更新
 draft: false
-image: https://hpic.072103.xyz
+image: assets/images/xinghui.avif
 lang: zh_CN
 published: 1999-01-01
 tags:
@@ -200,13 +200,13 @@ masquerade:
 
 二叉树树自用： fenliu.072103.xyz
 
-![](https://sb-r2.afo.im/myblog/img/0cfff651-0590-4700-81f4-79c9e576c38d.webp)
+![](assets/images/0cfff651-0590-4700-81f4-79c9e576c38d.webp)
 
-[CM大佬](https://blog.cmliussss.com/)： cf.090227.xyz![](https://sb-r2.afo.im/myblog/img/8f2ac2b4-b5b7-4d9e-8d80-103181e975a9.webp)
+[CM大佬](https://blog.cmliussss.com/)： cf.090227.xyz![](assets/images/8f2ac2b4-b5b7-4d9e-8d80-103181e975a9.webp)
 
 [微测网](https://www.wetest.vip/page/cloudflare/cname.html)：cloudflare.182682.xyz
 
-![](https://sb-r2.afo.im/myblog/img/1b8b0adb-f3bc-4513-814e-4f20529a86cf.webp)
+![](assets/images/1b8b0adb-f3bc-4513-814e-4f20529a86cf.webp)
 
 ---
 
