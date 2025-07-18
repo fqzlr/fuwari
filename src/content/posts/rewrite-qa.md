@@ -2,7 +2,7 @@
 category: 随笔
 description: Rewrite打完才发现MV一个没看到
 draft: false
-image: https://sb-r2.afo.im/fuwari-blog/img/bafybeihhyuk3zjqkisf66swxft4j5srv3g7wozy3zn4ykpsh3cuveuuwb4
+image: assets/images/bafybeihhyuk3zjqkisf66swxft4j5srv3g7wozy3zn4ykpsh3cuveuuwb4.png
 lang: ''
 published: 2024-11-28
 tags:
@@ -13,11 +13,11 @@ title: 关于Rewrite MV无法播放\没有画面的解决方法
 
 安装这个即可
 
-![image](https://sb-r2.afo.im/fuwari-blog/img/bafkreieb2qknggudxx7sc723jheso6grhgemznjqb5n6yqwsrvgqkqn4ba)
+![image](assets/images/bafkreieb2qknggudxx7sc723jheso6grhgemznjqb5n6yqwsrvgqkqn4ba.png)
 
 然后游戏内改为Windows Media Player
 
-![image](https://sb-r2.afo.im/fuwari-blog/img/bafkreihujn3jctibvixv4trpsu5j4d2v7de2ibzea6xe6pzmithymffpqu)
+![image](assets/images/bafkreihujn3jctibvixv4trpsu5j4d2v7de2ibzea6xe6pzmithymffpqu.png)
 
 # 汉化组提供的解决方法
 
@@ -25,4 +25,4 @@ title: 关于Rewrite MV无法播放\没有画面的解决方法
 
 然后游戏内改为 MCI
 
-![image](https://sb-r2.afo.im/fuwari-blog/img/bafkreic7a3tnnoxyn646tzy35nec2oioz4ktffuizb5ge67ibww5ntnmpq)
+![image](assets/images/bafkreic7a3tnnoxyn646tzy35nec2oioz4ktffuizb5ge67ibww5ntnmpq.png)
