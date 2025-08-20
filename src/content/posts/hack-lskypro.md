@@ -25,41 +25,29 @@ lang: ''
 
 ```nginx
     # 全局 404 交给 @fallback 处理，不强制状态码
-
     error_page 404 @fallback;
 
 
 
     location / {
-
         try_files $uri $uri/ @fallback;
-
     }
 
 
 
     # 命名 location：交给 index.php，但不强制 200
-
     location @fallback {
-
         rewrite ^ /index.php last;
-
     }
 
 
 
     # -----------------------------
-
     # 特殊路径：/api/v2/ 也走 index.php，但不能强制 200
-
     # -----------------------------
-
     location ^~ /api/v2/ {
-
         # 同样使用 @fallback，不强制状态码
-
         try_files $uri $uri/ @fallback;
-
     }
 ```
 
@@ -69,7 +57,6 @@ lang: ''
 
 ```bash
 export http_proxy="http://127.0.0.1:8080"
-
 export https_proxy="http://127.0.0.1:8080"
 ```
 
@@ -121,10 +108,7 @@ export https_proxy="http://127.0.0.1:8080"
 
 ```php
     /**
-
      * 服务接口地址
-
      */
-
     'service_api' => env('APP_SERVICE_API', 'https://huohuastudio.com'),
 ```
