@@ -11,7 +11,7 @@ lang: ''
 
 # 快速上手！
 
-直接 Fork我的[仓库]([GitHub - afoim/Redirect_Group](https://github.com/afoim/Redirect_Group))。
+直接 Fork我的 [仓库](https://github.com/afoim/Redirect_Group) 。
 
 接着将该仓库连接到Cloudflare部署Worker或Page，然后绑定你的域名
 
