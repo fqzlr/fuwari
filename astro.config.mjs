@@ -1,6 +1,7 @@
 import sitemap from "@astrojs/sitemap";
 import svelte from "@astrojs/svelte";
 import tailwind from "@astrojs/tailwind";
+import vercel from "@astrojs/vercel/static";
 import swup from "@swup/astro";
 import icon from "astro-icon";
 import { defineConfig } from "astro/config";
@@ -31,7 +32,8 @@ import { pluginCustomCopyButton } from "./src/plugins/expressive-code/custom-cop
 export default defineConfig({
     site: "https://www.2x.nz",
     base: "/",
-    trailingSlash: "ignore",
+    trailingSlash: "always",
+    adapter: vercel(),
     redirects: {
         "/ak": {
             destination: "https://akile.io/register?aff_code=503fe5ea-e7c5-4d68-ae05-6de99513680e",
