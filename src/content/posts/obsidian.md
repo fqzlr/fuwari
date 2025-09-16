@@ -9,6 +9,7 @@ tags:
 draft: false
 lang: ""
 ---
+> 视频链接： https://www.bilibili.com/video/BV1C7pDzpEHY
 # 下载
 前往 [Download - Obsidian](https://obsidian.md/download) 下载对应你系统版本的软件。安装界面就可以选择语言为 **简体中文**
 # 初次上手
