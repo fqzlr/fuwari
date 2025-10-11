@@ -25,7 +25,7 @@ lang: ''
 
 现在我们确实可以看到每个文章（即/posts/xxx）的访问量了，但是我们要如何展示给用户呢？
 
-# 逆向Umami的只读页面！
+# 逆向Umami的只读页面！（新版v3）
 
 > 感谢nightNya提供的方案，你是天才！
 
@@ -35,7 +35,8 @@ lang: ''
 
 注意这里的 `7PoDRgCzHFTs2vWB` ，每个站点都不一样
 
-接着我们请求 `https://us.umami.is/api/share/7PoDRgCzHFTs2vWB`，得到
+接着我们请求 `https://cloud.umami.is/analytics/us/api/share/7PoDRgCzHFTs2vWB`，得到
+*注意，这里的 `us` 为你创建的账号区域，美国为us，欧盟为eu*
 
 ```json
 {
@@ -46,7 +47,7 @@ lang: ''
 
 再接着我们请求，携带请求头 `x-umami-share-token` 值为上一步获得的Token
 
-`https://us.umami.is/api/websites/a66a5fd4-98b0-4108-8606-cb7094f380ac/stats?startAt=0&endAt=1750805999999&unit=hour&timezone=Asia/Hong_Kong&url=/posts/cf-fastip/&compare=false`
+`https://cloud.umami.is/analytics/us/api/websites/a66a5fd4-98b0-4108-8606-cb7094f380ac/stats?startAt=0&endAt=1750805999999&unit=hour&timezone=Asia/Hong_Kong&path=eq./posts/cf-fastip/&compare=false`
 
 这里解释几个关键Params，其他的照搬
 
@@ -54,36 +55,28 @@ lang: ''
 
 - endAt：统计结束时间。Unix时间戳，我们可以使用 `Date.now()` ，即当前时间，和startAt参数联动即可实现统计总浏览量
 
-- url：要查询的路径，填写为你的文章页去除了Host的路径，如 `/posts/hello` 。注意！Umami会将 `/posts/hello` 和 `/posts/hello/` 视为两个不同的路径，请注意你的博客框架是否使用 `/`
+- path：要查询的路径，填写为你的文章页去除了Host的路径，如 `/posts/hello` 。注意！Umami会将 `/posts/hello` 和 `/posts/hello/` 视为两个不同的路径，请注意你的博客框架是否使用 `/`。在v3版本中，需要使用 `eq.` 前缀来进行精确匹配，例如 `path=eq./posts/hello/`
 
 你会得到
 
 ```json
 {
-    "pageviews": {
-        "value": 1655,
-        "prev": 0
-    },
-    "visitors": {
-        "value": 343,
-        "prev": 0
-    },
-    "visits": {
-        "value": 411,
-        "prev": 0
-    },
-    "bounces": {
-        "value": 183,
-        "prev": 0
-    },
-    "totaltime": {
-        "value": 30592,
-        "prev": 0
+    "pageviews": 1655,
+    "visitors": 343,
+    "visits": 411,
+    "bounces": 183,
+    "totaltime": 30592,
+    "comparison": {
+        "pageviews": 0,
+        "visitors": 0,
+        "visits": 0,
+        "bounces": 0,
+        "totaltime": 0
     }
 }
 ```
 
-`pageviews.vlaue` 即浏览量。 `visits.value` 即访问次数。
+`pageviews` 即浏览量。 `visitors` 即访问人数。
 
 > Tips：浏览量记录为任意用户只要访问了则计数一次。而访问数记录不会记录单IP多次重复访问和同一时间段的多次请求不同页面
 
