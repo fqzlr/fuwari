@@ -75,6 +75,10 @@ try {
                             serverIcon.src = '/cdn/cf.svg';
                             serverIcon.classList.remove('hidden');
                             serverInfo.classList.add('hidden');
+                        } else if (serverLower === 'esa') {
+                            serverIcon.src = '/cdn/esa.svg';
+                            serverIcon.classList.remove('hidden');
+                            serverInfo.classList.add('hidden');
                         } else {
                             serverIcon.classList.add('hidden');
                             serverInfo.classList.remove('hidden');
