@@ -240,9 +240,9 @@
                 ${isUpdated && post.diff ? `
                 <div id="${safeId}" class="hidden mt-2 p-2 bg-gray-50 dark:bg-gray-800 rounded text-xs overflow-x-auto border border-gray-200 dark:border-gray-700 max-h-60 overflow-y-auto">
                     ${post.diff.map(part => {
-                        const colorClass = part.added ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 block my-1 p-1 rounded' :
-                                         part.removed ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 block my-1 p-1 rounded' :
-                                         'text-gray-500 dark:text-gray-400 block my-1 p-1';
+                        const colorClass = part.added ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 block my-1 p-1 rounded break-all whitespace-pre-wrap' :
+                                         part.removed ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 block my-1 p-1 rounded break-all whitespace-pre-wrap' :
+                                         'text-gray-500 dark:text-gray-400 block my-1 p-1 break-all whitespace-pre-wrap';
                         return `<div class="${colorClass}">${part.value}</div>`;
                     }).join('')}
                 </div>
