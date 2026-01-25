@@ -13,7 +13,7 @@ import { LinkPreset } from "./types/config";
 
 export const noticeConfig: NoticeConfig = {
     enable: true,
-    level: "warning",
+    level: "info",
     content: "我们刚刚添加了文章更新系统，自此之后的每次文章更新都会通过右下角的小铃铛提醒您。",
 };
 
