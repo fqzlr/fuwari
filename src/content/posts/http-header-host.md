@@ -11,18 +11,21 @@ CDN上托管了那么多的网站，那它是如何识别每个用户需要访�
 
 针对 HTTPS ，CDN 会检查SSL握手报文中的 `Server_Name` 字段。而针对 HTTP ，CDN 会检查请求头中的 `Host` 字段
 
-也就是说，我们可以通过直接访问CDN节点，如： `http://blog.acofork.com.a1.initww.com` 并携带上 `Host` 头指定为 `blog.acofork.com` ，从而强制指定节点访问业务网站，不走分流
+也就是说，对于海外CDN是否存活，我们可以通过直接访问CDN节点，如： `http://blog.acofork.com.a1.initww.com` 并携带上 `Host` 头指定为 `blog.acofork.com` ，从而强制指定节点访问业务网站，不走分流
 
-那么如果CDN开启了强制HTTPS呢？监测请求会被301到分流域名，这样不就没意义了吗？
+那么如果CDN开启了强制HTTPS呢？那就关掉
 
-并不是，我们只需要让它监测301/302是否能正常返回即可，不吃它的重定向。如果说CDN节点被打宕机了，它应该什么状态码都不返回，如果说CDN节点返回拦截页面，那它也不可能返回301/302 ，所以这样监测是有效的
+![](../assets/images/http-header-host-3.png)
 
-经测试，EdgeOne，ESA都是先进行WAF拦截，也就是你使用HTTP访问，若该请求不合法，将会直接被拦截（EO返回418，ESA返回403），不会进行HTTPS升级
+# 常用CDN节点
+
+- Cloudflare：你自己的优选域名，如 **http://cdn.2x.nz** 
+- Github： **http://pages.github.com** 
 
 # 正式开始
 部署一个Uptime Kuma（或者其他服务，监测源必须在国内。因为EO，ESA我们要做拦截海外策略）
 
-如图写监测项目，直接使用HTTP协议监测CDN节点，并且携带Host头，将重定向设为0，只要返回 301/302 就算存活（为了减轻站点压力，建议使用HEAD请求）
+如图写监测项目，直接使用HTTP协议监测CDN节点，并且携带Host头，将重定向设为0，只要返回 200 就算存活（为了减轻站点压力，建议使用HEAD请求）
 
 ![](../assets/images/http-header-host-1.png)
 
