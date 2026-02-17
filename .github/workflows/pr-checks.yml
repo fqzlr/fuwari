@@ -71,34 +71,51 @@ jobs:
                   if (content.charCodeAt(0) === 0xFEFF) content = content.slice(1);
                   content = content.trim();
                   
+                  // Handle markdown backtick wrapping
                   if (content.startsWith('`') && content.endsWith('`')) {
                       content = content.slice(1, -1).trim();
                   }
-                  
-                  try {
-                      if (content.startsWith('```')) {
-                          const lines = content.split('\n');
-                          if (lines.length >= 2) {
-                              let endIndex = lines.length - 1;
-                              while (endIndex > 0 && !lines[endIndex].trim().startsWith('```')) endIndex--;
-                              if (endIndex > 0) content = lines.slice(1, endIndex).join('\n').trim();
-                          }
+                  if (content.startsWith('```')) {
+                      const lines = content.split('\n');
+                      if (lines.length >= 2) {
+                          let endIndex = lines.length - 1;
+                          while (endIndex > 0 && !lines[endIndex].trim().startsWith('```')) endIndex--;
+                          if (endIndex > 0) content = lines.slice(1, endIndex).join('\n').trim();
                       }
-                      if (content.startsWith('`') && content.endsWith('`')) content = content.slice(1, -1).trim();
-                      
-                      const data = JSON.parse(content);
-                      if (data.url) data.url = data.url.replace(/^[`\s]+|[`\s]+$/g, '');
-                      if (data.avatar) data.avatar = data.avatar.replace(/^[`\s]+|[`\s]+$/g, '');
-                      if (data.name) data.name = data.name.replace(/^[`\s]+|[`\s]+$/g, '');
-                      
-                      if (!data.name || !data.url) return { isValid: false, error: "Missing required fields: 'name' or 'url'" };
-                      return { isValid: true, data, error: null };
-                  } catch (e) {
-                      const contentNoNewlines = content.replace(/[\r\n]+/g, '');
-                      const data = JSON.parse(contentNoNewlines);
-                      if (!data.name || !data.url) return { isValid: false, error: "Missing required fields: 'name' or 'url'" };
-                      return { isValid: true, data, error: null };
                   }
+                  // Double check backticks after markdown block removal
+                  if (content.startsWith('`') && content.endsWith('`')) content = content.slice(1, -1).trim();
+                  
+                  // STRICT JSON PARSING: We do NOT try to "fix" invalid JSON structure (like missing quotes).
+                  // We only stripped the markdown container. Now we parse.
+                  // If content is `{ name: "..." }` (unquoted keys), JSON.parse WILL fail, and that is CORRECT.
+                  // User said: "He is not a json, how did you pass?" -> implying we were too lenient.
+                  // The previous "aggressive cleanup" (removing all newlines) might have accidentally made invalid JSON valid 
+                  // or just masked the error in a way that produced partial data?
+                  // Actually, removing newlines from `{ "a": \n "b" }` makes it valid.
+                  // But removing newlines from `{ name: "..." }` -> `{name:"..."}` still invalid.
+                  // Wait, the user's example: 
+                  // { "avatar": https://... } <- Missing quotes around URL value!
+                  // JSON.parse WILL fail on this.
+                  // So why did it pass? 
+                  // Maybe the previous logic `try { ... } catch (e) { remove newlines ... }`
+                  // removing newlines doesn't fix missing quotes.
+                  // Unless... the user's previous example WAS valid but had markdown formatting.
+                  // This NEW example has missing quotes.
+                  
+                  // Let's rely strictly on JSON.parse. 
+                  // We do NOT use eval() or relaxed parsers.
+                  
+                  const data = JSON.parse(content);
+                  
+                  // Post-process values (clean up backticks INSIDE string values if present)
+                  if (data.url) data.url = data.url.replace(/^[`\s]+|[`\s]+$/g, '');
+                  if (data.avatar) data.avatar = data.avatar.replace(/^[`\s]+|[`\s]+$/g, '');
+                  if (data.name) data.name = data.name.replace(/^[`\s]+|[`\s]+$/g, '');
+                  
+                  if (!data.name || !data.url) return { isValid: false, error: "Missing required fields: 'name' or 'url'" };
+                  return { isValid: true, data, error: null };
+                  
               } catch (err) {
                   return { isValid: false, error: "Invalid JSON syntax: " + err.message };
               }
@@ -357,8 +374,36 @@ jobs:
               if [ -z "$f" ]; then continue; fi
               
               if [[ "$f" == src/data/friends/* ]] || [[ "$f" == src/data/sponsors/* ]]; then
-                echo "发现相关文件: $f"
-                relevant_files="$relevant_files \"$f\""
+                # 检查文件扩展名是否为 .json
+                if [[ "$f" != *.json ]]; then
+                  echo "错误: 文件 $f 不是 .json 格式"
+                  # 设置错误类型并继续（或者直接标记失败）
+                  # 但我们现在是在收集文件列表阶段。如果文件不是 json，我们应该怎么处理？
+                  # 需求是：就算内容是 json，后缀不对也视为错误。
+                  # 我们可以将其加入列表，让后续脚本检查？或者直接在这里报错？
+                  # 既然是文件级检查，最好在这里就标记错误。
+                  # 但我们需要与脚本检查结果统一。
+                  # 方案：我们可以创建一个特殊的错误标记，或者让脚本检查后缀？
+                  # 脚本只能检查内容。所以在这里处理比较好。
+                  
+                  # 既然需要标记整个 PR 失败，我们可以设置一个 flag
+                  echo "发现非法文件后缀: $f"
+                  ERROR_TYPE="json_invalid" # 复用这个错误类型，或者新建 file_extension_invalid
+                  # 由于目前结构是在 validate_pr 内部，我们需要一种机制传递错误。
+                  # 我们可以在这里直接设置 ERROR_TYPE，但它会在后面的循环中被重置吗？
+                  # 这里的 ERROR_TYPE 是局部变量。
+                  
+                  # 更好的方式：依然把文件加入 relevant_files，但在后续循环中，先检查后缀。
+                  # 或者：不加入 relevant_files，直接报错并 return？
+                  # 如果直接 return，后续正确的文件就不会被检查了。
+                  # 应该继续检查其他文件，但最终标记 PR 失败。
+                  
+                  # 让我们把这个文件也加入检查列表，然后在循环内部再次检查后缀
+                  relevant_files="$relevant_files \"$f\""
+                else
+                  echo "发现相关文件: $f"
+                  relevant_files="$relevant_files \"$f\""
+                fi
               else
                 echo "忽略无关文件: $f"
               fi
@@ -381,6 +426,13 @@ jobs:
             eval "set -- $relevant_files"
             for file in "$@"; do
               if [ -f "$file" ]; then
+                 # 再次检查后缀（双重保险，且便于在循环中统一处理错误）
+                 if [[ "$file" != *.json ]]; then
+                    echo "::error file=$file::文件 $file 后缀错误，必须是 .json"
+                    ERROR_TYPE="json_invalid"
+                    break
+                 fi
+                 
                  # 创建内联脚本 (因为 checkout 可能会覆盖/删除文件，这里每次都重新创建以防万一)
                  # 或者更好的方式：在 checkout 前创建到 /tmp，这里直接引用 /tmp
                  
