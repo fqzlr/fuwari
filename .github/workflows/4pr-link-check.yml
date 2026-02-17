@@ -27,8 +27,9 @@ jobs:
         with:
           script: |
             const fs = require("fs");
-            const path = require("path");
+
             const validLabel = "有效 JSON";
+            const ownershipLabel = "所有权验证未完成";
 
             async function getSiteUrl() {
               try {
@@ -44,6 +45,8 @@ jobs:
             }
 
             async function checkUrl(targetUrl) {
+              if (!targetUrl) return false;
+
               try {
                 const controller = new AbortController();
                 const timeout = setTimeout(() => controller.abort(), 10000);
@@ -55,8 +58,7 @@ jobs:
 
                 clearTimeout(timeout);
 
-                if (res.status === 200) return true;
-                return false;
+                return res.status === 200;
               } catch (e) {
                 return false;
               }
@@ -103,14 +105,11 @@ jobs:
                 }
               }
 
-              if (!jsonData) {
-                console.log("No JSON found.");
-                return;
-              }
+              if (!jsonData) return;
 
               const siteUrl = await getSiteUrl();
 
-              async function resolveUrl(u) {
+              function resolveUrl(u) {
                 if (!u) return null;
 
                 if (u.startsWith("http://") || u.startsWith("https://")) {
@@ -124,14 +123,31 @@ jobs:
                 return u;
               }
 
-              const avatarUrl = await resolveUrl(jsonData.avatar);
-              const pageUrl = await resolveUrl(jsonData.url);
+              const avatarUrl = resolveUrl(jsonData.avatar);
+              const pageUrl = resolveUrl(jsonData.url);
 
               const avatarOk = await checkUrl(avatarUrl);
               const urlOk = await checkUrl(pageUrl);
 
-              // 清除旧标签
-              const statusLabels = ["avatar yes", "avatar no", "url yes", "url no"];
+              const newLabels = [
+                avatarOk ? "avatar yes" : "avatar no",
+                urlOk ? "url yes" : "url no"
+              ];
+
+              // 如果两个都成功
+              if (avatarOk && urlOk) {
+                newLabels.push(ownershipLabel);
+              }
+
+              // 删除旧状态标签
+              const statusLabels = [
+                "avatar yes",
+                "avatar no",
+                "url yes",
+                "url no",
+                ownershipLabel
+              ];
+
               for (const l of statusLabels) {
                 if (labels.includes(l)) {
                   await github.rest.issues.removeLabel({
@@ -143,15 +159,11 @@ jobs:
                 }
               }
 
-              // 添加新标签
               await github.rest.issues.addLabels({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: prNumber,
-                labels: [
-                  avatarOk ? "avatar yes" : "avatar no",
-                  urlOk ? "url yes" : "url no"
-                ],
+                labels: newLabels,
               });
 
               console.log("Link check done.");
@@ -178,8 +190,6 @@ jobs:
 
               if (prNumber) {
                 await processPR(prNumber);
-              } else {
-                console.log("No PR associated.");
               }
 
             }
