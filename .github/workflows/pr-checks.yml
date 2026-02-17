@@ -66,6 +66,121 @@ jobs:
           ALL_CHANGED_FILES: ${{ steps.changed-files.outputs.all_changed_files }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
+          # 创建内联检查脚本
+          cat << 'EOF' > check-pr-content.js
+          const fs = require('fs');
+          const https = require('https');
+          const http = require('http');
+          
+          const TIMEOUT = 10000;
+          
+          const colors = {
+              reset: '\x1b[0m', red: '\x1b[31m', green: '\x1b[32m', blue: '\x1b[34m'
+          };
+          
+          function validateJson(filePath) {
+              try {
+                  let content = fs.readFileSync(filePath, 'utf8');
+                  if (content.charCodeAt(0) === 0xFEFF) content = content.slice(1);
+                  content = content.trim();
+                  
+                  if (content.startsWith('`') && content.endsWith('`')) {
+                      content = content.slice(1, -1).trim();
+                  }
+                  
+                  try {
+                      if (content.startsWith('```')) {
+                          const lines = content.split('\n');
+                          if (lines.length >= 2) {
+                              let endIndex = lines.length - 1;
+                              while (endIndex > 0 && !lines[endIndex].trim().startsWith('```')) endIndex--;
+                              if (endIndex > 0) content = lines.slice(1, endIndex).join('\n').trim();
+                          }
+                      }
+                      if (content.startsWith('`') && content.endsWith('`')) content = content.slice(1, -1).trim();
+                      
+                      const data = JSON.parse(content);
+                      if (data.url) data.url = data.url.replace(/^[`\s]+|[`\s]+$/g, '');
+                      if (data.avatar) data.avatar = data.avatar.replace(/^[`\s]+|[`\s]+$/g, '');
+                      if (data.name) data.name = data.name.replace(/^[`\s]+|[`\s]+$/g, '');
+                      
+                      if (!data.name || !data.url) return { isValid: false, error: "Missing required fields: 'name' or 'url'" };
+                      return { isValid: true, data, error: null };
+                  } catch (e) {
+                      const contentNoNewlines = content.replace(/[\r\n]+/g, '');
+                      const data = JSON.parse(contentNoNewlines);
+                      if (!data.name || !data.url) return { isValid: false, error: "Missing required fields: 'name' or 'url'" };
+                      return { isValid: true, data, error: null };
+                  }
+              } catch (err) {
+                  return { isValid: false, error: "Invalid JSON syntax: " + err.message };
+              }
+          }
+          
+          function checkUrl(url) {
+              return new Promise((resolve) => {
+                  if (!url) { resolve({ ok: false, status: 'Missing URL' }); return; }
+                  if (!url.startsWith('http')) { resolve({ ok: true, status: 'Skipped (Non-HTTP)' }); return; }
+                  
+                  const client = url.startsWith('https') ? https : http;
+                  const req = client.request(url, { method: 'GET', headers: { 'User-Agent': 'Mozilla/5.0' }, timeout: TIMEOUT }, (res) => {
+                      res.resume();
+                      if (res.statusCode >= 200 && res.statusCode < 400) resolve({ ok: true, status: res.statusCode });
+                      else resolve({ ok: false, status: res.statusCode });
+                  });
+                  req.on('error', (err) => { resolve({ ok: false, status: err.message }); });
+                  req.on('timeout', () => { req.destroy(); resolve({ ok: false, status: 'Timeout' }); });
+                  req.end();
+              });
+          }
+          
+          async function checkPrFile(filePath) {
+              console.log(`\n${colors.blue}Processing: ${filePath}${colors.reset}`);
+              const jsonResult = validateJson(filePath);
+              if (!jsonResult.isValid) {
+                  console.error(`${colors.red}❌ JSON 验证失败: ${jsonResult.error}${colors.reset}`);
+                  if (process.env.GITHUB_OUTPUT) fs.appendFileSync(process.env.GITHUB_OUTPUT, "error_type=json_invalid\n");
+                  process.exit(1);
+              }
+              const data = jsonResult.data;
+              console.log(`${colors.green}✅ JSON 语法正确${colors.reset}`);
+              console.log("解析后的 JSON 内容:");
+              console.log(JSON.stringify(data, null, 2));
+              console.log(`名称: ${data.name}`);
+              console.log(`URL: ${data.url}`);
+              if (data.avatar) console.log(`头像: ${data.avatar}`);
+              
+              console.log("正在测试 URL 连通性...");
+              const urlCheck = await checkUrl(data.url);
+              if (!urlCheck.ok) {
+                  console.error(`${colors.red}❌ 主链接不可达: ${urlCheck.status}${colors.reset}`);
+                  if (process.env.GITHUB_OUTPUT) fs.appendFileSync(process.env.GITHUB_OUTPUT, "error_type=url_unreachable\n");
+                  process.exit(1);
+              }
+              console.log(`${colors.green}✅ 主链接可访问 (${urlCheck.status})${colors.reset}`);
+              
+              if (data.avatar && data.avatar.startsWith('http')) {
+                  console.log("正在测试头像连通性...");
+                  const avatarCheck = await checkUrl(data.avatar);
+                  if (!avatarCheck.ok) {
+                      console.error(`${colors.red}❌ 头像链接不可达: ${avatarCheck.status}${colors.reset}`);
+                      if (process.env.GITHUB_OUTPUT) fs.appendFileSync(process.env.GITHUB_OUTPUT, "error_type=avatar_unreachable\n");
+                      process.exit(1);
+                  }
+                  console.log(`${colors.green}✅ 头像链接可访问 (${avatarCheck.status})${colors.reset}`);
+              }
+              
+              if (process.env.GITHUB_OUTPUT) {
+                  fs.appendFileSync(process.env.GITHUB_OUTPUT, `name=${data.name}\n`);
+                  fs.appendFileSync(process.env.GITHUB_OUTPUT, "error_type=none\n");
+              }
+          }
+          
+          const filePath = process.argv[2];
+          if (!filePath) { console.error("Usage: node check-pr-content.js <file-path>"); process.exit(1); }
+          checkPrFile(filePath).catch(err => { console.error("Unexpected Error:", err); process.exit(1); });
+          EOF
+          
           echo "变更文件: $ALL_CHANGED_FILES"
           
           HAS_FRIENDS=false
@@ -84,11 +199,11 @@ jobs:
               continue
             fi
             
-            # 运行检查脚本
+            # 运行检查脚本 (使用内联脚本)
             # 清理之前的输出
             echo "" > "$GITHUB_OUTPUT"
             
-            if ! node scripts/check-pr-content.js "$file"; then
+            if ! node check-pr-content.js "$file"; then
               echo "::error file=$file::文件 $file 验证失败"
               
               # 获取错误类型
