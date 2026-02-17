@@ -1,4 +1,4 @@
-name: JSON Format Check
+name: JSON Content Check
 
 on:
   pull_request:
@@ -9,28 +9,42 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Get changed files
-        id: changed-files
-        uses: tj-actions/changed-files@v44
-        with:
-          files: |
-            **/*.json
+      - uses: actions/checkout@v4
 
       - name: Install jq
         run: sudo apt-get install -y jq
 
-      - name: Validate JSON files
-        if: steps.changed-files.outputs.any_changed == 'true'
+      - name: Get changed files
+        id: changed
+        uses: tj-actions/changed-files@v44
+
+      - name: Validate possible JSON files
         run: |
-          echo "Checking JSON files..."
-          for file in ${{ steps.changed-files.outputs.all_changed_files }}; do
-            echo "Validating $file"
-            jq empty "$file"
+          failed=0
+          for file in ${{ steps.changed.outputs.all_changed_files }}; do
+            echo "Checking $file"
+
+            # 跳过删除的文件
+            if [ ! -f "$file" ]; then
+              continue
+            fi
+
+            # 判断文件是否可能是 JSON（以 { 或 [ 开头）
+            first_char=$(head -c 1 "$file" | tr -d '[:space:]')
+
+            if [[ "$first_char" == "{" || "$first_char" == "[" ]]; then
+              echo "Possible JSON detected in $file"
+
+              if ! jq empty "$file" > /dev/null 2>&1; then
+                echo "❌ Invalid JSON in $file"
+                failed=1
+              else
+                echo "✅ Valid JSON in $file"
+              fi
+            fi
           done
 
-      - name: No JSON files changed
-        if: steps.changed-files.outputs.any_changed != 'true'
-        run: echo "No JSON files modified."
+          if [ "$failed" -ne 0 ]; then
+            echo "JSON validation failed."
+            exit 1
+          fi
