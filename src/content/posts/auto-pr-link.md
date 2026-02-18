@@ -2,7 +2,7 @@
 title: 网站加友链的最佳姿势是什么？当然是自动化啦！
 published: 2026-02-18T06:41:17
 description: 你喜欢一觉醒来发现Pr十几个然后全是添加友链吗，甚至你还需要一个个看帮他们纠正语法错误，草！我不干了！
-image: ../assets/images/auto-pr-link.png
+image: ../assets/images/auto-pr-link-12.png
 draft: false
 lang: ""
 ---
@@ -29,6 +29,14 @@ lang: ""
 那么有没有办法把这坨史转嫁一下呢？
 
 # 正式开始
+
+我们是否可以通过Github Action来自动化这件事？
+
+让用户提交友链的时候再添加一个回链字段，然后让Github Action实际测试是否有回链，这不仅能确保对面添加了你的友链，也能顺便做好所有权验证
+
+![](../assets/images/auto-pr-link-11.png)
+
+# 正式开始（旧的）
 
 我们可以通过我们超高校级的大脑思考一下
 
