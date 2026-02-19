@@ -11,10 +11,12 @@ import { Icon } from "astro-icon/components";
 					<Icon name="material-symbols:photo-library-rounded" class="text-[1.5rem]"></Icon>
 				</div>
 				<h1 class="text-2xl font-bold text-90">画廊</h1>
+				<div id="status" class="text-sm font-bold text-50 transition-all"></div>
 			</div>
 			<div class="flex items-center gap-2">
 				<button id="btn-h" type="button" class="btn-regular h-9 px-3 rounded-lg text-sm font-medium">横屏</button>
 				<button id="btn-v" type="button" class="btn-regular h-9 px-3 rounded-lg text-sm font-medium">竖屏</button>
+				<button id="btn-sort" type="button" class="btn-regular h-9 px-3 rounded-lg text-sm font-medium">最新</button>
 				<a
 					id="open-source"
 					class="btn-regular h-9 px-3 rounded-lg text-sm font-medium"
@@ -28,33 +30,45 @@ import { Icon } from "astro-icon/components";
 		</div>
 
 		<div class="text-sm text-50 mb-5 leading-relaxed">
-			数据源来自 <span class="font-medium text-75">https://p.2x.nz/random.js</span>。
+			图片二进制自托管于： <a href="https://p.2x.nz" target="_blank" rel="noopener noreferrer" class="font-medium text-75 hover:text-[var(--primary)] transition-colors">https://p.2x.nz</a> | 特别鸣谢：<b class="font-bold text-75">锦瑟/瑞希</b> 大佬提供的图源
 		</div>
 
-		<div id="gallery" class="gallery-grid"></div>
-		<div id="sentinel" class="h-10"></div>
-		<div id="status" class="text-sm text-50 mt-3"></div>
+		<div id="gallery" class="gallery-grid" data-ready="false"></div>
+		<div id="footer-status" class="text-center text-sm text-50 h-10 mt-4"></div>
+		<div id="sentinel" class="h-4"></div>
 	</div>
 
 	<style>
 		.gallery-grid {
 			width: 100%;
+			opacity: 0;
+			transform: translateY(4px);
+			transition:
+				opacity 0.2s ease,
+				transform 0.2s ease;
+		}
+		.gallery-grid[data-ready="true"] {
+			opacity: 1;
+			transform: translateY(0);
 		}
 		.gallery-item {
-			margin-bottom: 16px;
+			line-height: 24px;
 		}
 	</style>
 
 	<script>
 		import Masonry from "masonry-layout";
 		import imagesLoaded from "imagesloaded";
+		import { Fancybox } from "@fancyapps/ui";
+		import "@fancyapps/ui/dist/fancybox/fancybox.css";
 
 		const RANDOM_JS_URL = "https://p.2x.nz/random.js";
 		const DOMAIN = "https://p.2x.nz";
 
 		let counts = { h: 0, v: 0 };
 		let currentType = "h";
-		let used = new Set();
+		let isReverse = false;
+		let nextIndex = 1;
 		let loading = false;
 		let msnry = null;
 		let io = null;
@@ -84,6 +98,11 @@ import { Icon } from "astro-icon/components";
 			statusEl.textContent = text || "";
 		}
 
+		function updateStatus() {
+			const count = counts[currentType] || 0;
+			setStatus(`共 ${count} 张`);
+		}
+
 		function setActiveButton() {
 			const btnH = document.getElementById("btn-h");
 			const btnV = document.getElementById("btn-v");
@@ -95,38 +114,52 @@ import { Icon } from "astro-icon/components";
 			}
 		}
 
+		function updateSortButton() {
+			const btnSort = document.getElementById("btn-sort");
+			if (!btnSort) return;
+			btnSort.textContent = isReverse ? "最早" : "最新";
+			// 可选：添加高亮表示当前状态，或者仅通过文本区分
+			const activeClasses = ["ring-2", "ring-[var(--primary)]"];
+			for (const c of activeClasses) {
+				btnSort.classList.toggle(c, isReverse);
+			}
+		}
+
 		async function fetchCounts() {
 			try {
 				const res = await fetch(RANDOM_JS_URL, { cache: "no-store" });
 				if (!res.ok) throw new Error(String(res.status));
 				const text = await res.text();
-				const m = text.match(/var\\s+counts\\s*=\\s*(\\{[^;]+\\})\\s*;/);
+				const m = text.match(/var\s+counts\s*=\s*(\{[^;]+\})\s*;/);
 				if (!m) throw new Error("counts not found");
 				const parsed = JSON.parse(m[1]);
 				const h = Number(parsed.h || 0);
 				const v = Number(parsed.v || 0);
 				if (!Number.isFinite(h) || !Number.isFinite(v)) throw new Error("counts invalid");
 				counts = { h, v };
-				setStatus(`横屏 ${h} 张 · 竖屏 ${v} 张`);
+				updateStatus();
 			} catch (e) {
 				counts = { h: 1074, v: 4003 };
-				setStatus("无法获取 counts，已使用默认数量");
+				updateStatus();
 			}
 		}
 
-		function pickUniqueIndex(max, maxTries = 20) {
-			if (!max) return null;
-			for (let i = 0; i < maxTries; i++) {
-				const n = Math.floor(Math.random() * max) + 1;
-				const key = `${currentType}:${n}`;
-				if (!used.has(key)) {
-					used.add(key);
-					return n;
-				}
+		function resetIndex() {
+			const max = counts[currentType] || 0;
+			if (isReverse) {
+				nextIndex = max;
+			} else {
+				nextIndex = 1;
 			}
-			const n = Math.floor(Math.random() * max) + 1;
-			used.add(`${currentType}:${n}`);
-			return n;
+		}
+
+		function getNextIndex(max) {
+			if (isReverse) {
+				if (nextIndex < 1) return null;
+				return nextIndex--;
+			}
+			if (nextIndex > max) return null;
+			return nextIndex++;
 		}
 
 		function buildImgUrl(n) {
@@ -136,9 +169,10 @@ import { Icon } from "astro-icon/components";
 		function buildCard(url, width) {
 			const a = document.createElement("a");
 			a.href = url;
-			a.target = "_blank";
-			a.rel = "noopener noreferrer";
-			a.className = "gallery-item block";
+			// a.target = "_blank";
+			// a.rel = "noopener noreferrer";
+			a.dataset.fancybox = ""; // 独立展示，不分组
+			a.className = "gallery-item block opacity-0 transition-opacity duration-300"; // 初始隐藏
 			a.style.width = `${width}px`;
 
 			const wrapper = document.createElement("div");
@@ -154,6 +188,7 @@ import { Icon } from "astro-icon/components";
 
 			wrapper.appendChild(img);
 			a.appendChild(wrapper);
+			a.appendChild(document.createElement("br"));
 			return a;
 		}
 
@@ -161,7 +196,8 @@ import { Icon } from "astro-icon/components";
 			const galleryEl = document.getElementById("gallery");
 			if (!galleryEl) return;
 			galleryEl.innerHTML = "";
-			used = new Set();
+			galleryEl.dataset.ready = "false";
+			resetIndex();
 			if (msnry) {
 				msnry.destroy();
 				msnry = null;
@@ -170,10 +206,13 @@ import { Icon } from "astro-icon/components";
 
 		async function loadMore(batch = 20) {
 			const galleryEl = document.getElementById("gallery");
+			const footerStatus = document.getElementById("footer-status");
 			if (!galleryEl || loading) return;
 			const max = counts[currentType];
 			if (!max) return;
 			loading = true;
+			if (footerStatus) footerStatus.textContent = "加载中...";
+
 			try {
 				const { gutter, columnWidth } = getLayoutConfig(galleryEl);
 				if (!msnry) {
@@ -188,19 +227,53 @@ import { Icon } from "astro-icon/components";
 				const frag = document.createDocumentFragment();
 				const items = [];
 				for (let i = 0; i < batch; i++) {
-					const n = pickUniqueIndex(max);
+					const n = getNextIndex(max);
 					if (!n) break;
 					const url = buildImgUrl(n);
 					const el = buildCard(url, columnWidth);
 					items.push(el);
 					frag.appendChild(el);
 				}
-				galleryEl.appendChild(frag);
-				imagesLoaded(items, () => {
-					if (!msnry) return;
-					msnry.appended(items);
-					msnry.layout();
-				});
+
+				if (items.length > 0) {
+					galleryEl.appendChild(frag);
+					await new Promise((resolve) => {
+						imagesLoaded(items, () => {
+							if (!msnry) return resolve();
+							msnry.appended(items);
+							msnry.layout();
+							// 显示图片
+							for (const item of items) {
+								item.classList.remove("opacity-0");
+							}
+							if (galleryEl.dataset.ready !== "true") galleryEl.dataset.ready = "true";
+							resolve();
+						});
+					});
+				}
+
+				if (footerStatus) {
+					// 检查是否还有下一页
+					let hasMore = false;
+					if (isReverse) {
+						hasMore = nextIndex >= 1;
+					} else {
+						hasMore = nextIndex <= max;
+					}
+					footerStatus.textContent = hasMore ? "" : "已加载全部";
+
+					// 如果还有更多且 sentinel 可见，继续加载
+					if (hasMore) {
+						const sentinelEl = document.getElementById("sentinel");
+						if (sentinelEl) {
+							const rect = sentinelEl.getBoundingClientRect();
+							if (rect.top < window.innerHeight + 600) {
+								// 使用 setTimeout 避免堆栈过深，并允许 UI 刷新
+								setTimeout(() => loadMore(batch), 50);
+							}
+						}
+					}
+				}
 			} finally {
 				loading = false;
 			}
@@ -211,6 +284,7 @@ import { Icon } from "astro-icon/components";
 			if (currentType === type) return;
 			currentType = type;
 			setActiveButton();
+			updateStatus();
 			clearGallery();
 			loadMore(24);
 		}
@@ -221,7 +295,9 @@ import { Icon } from "astro-icon/components";
 			if (io) io.disconnect();
 			io = new IntersectionObserver(
 				(entries) => {
-					if (entries.some((e) => e.isIntersecting)) loadMore(20);
+					if (entries.some((e) => e.isIntersecting && !loading)) {
+						loadMore(20);
+					}
 				},
 				{ rootMargin: "600px 0px" },
 			);
@@ -244,6 +320,13 @@ import { Icon } from "astro-icon/components";
 			window.addEventListener("resize", resizeHandler, { passive: true });
 		}
 
+		function toggleSort() {
+			isReverse = !isReverse;
+			updateSortButton();
+			clearGallery();
+			loadMore(24);
+		}
+
 		async function init() {
 			const galleryEl = document.getElementById("gallery");
 			if (!galleryEl) return;
@@ -252,16 +335,55 @@ import { Icon } from "astro-icon/components";
 
 			setActiveButton();
 			await fetchCounts();
+			updateSortButton();
 			clearGallery();
 			await loadMore(24);
+			const sentinelEl = document.getElementById("sentinel");
+			if (sentinelEl && !loading) {
+				const rect = sentinelEl.getBoundingClientRect();
+				if (rect.top < window.innerHeight + 600) {
+					loadMore(20);
+				}
+			}
 
 			const btnH = document.getElementById("btn-h");
 			const btnV = document.getElementById("btn-v");
+			const btnSort = document.getElementById("btn-sort");
 			if (btnH) btnH.addEventListener("click", () => setType("h"));
 			if (btnV) btnV.addEventListener("click", () => setType("v"));
+			if (btnSort) btnSort.addEventListener("click", toggleSort);
+			updateSortButton();
 
 			setupInfiniteLoad();
 			setupResize();
+
+			// 绑定 Fancybox
+			Fancybox.bind("[data-fancybox]", {
+				groupAll: false, // 明确禁止分组
+				// 配置项参考主站逻辑
+				Toolbar: {
+					display: {
+						left: ["infobar"],
+						middle: [
+							"zoomIn",
+							"zoomOut",
+							"toggle1to1",
+							"rotateCCW",
+							"rotateCW",
+							"flipX",
+							"flipY",
+						],
+						right: ["slideshow", "fullscreen", "download", "thumbs", "close"],
+					},
+				},
+				Thumbs: {
+					type: "classic",
+				},
+				// 每一张独立展示，不显示前后切换箭头
+				Carousel: {
+					Navigation: false,
+				},
+			});
 		}
 
 		function initIfPresent() {
@@ -269,6 +391,11 @@ import { Icon } from "astro-icon/components";
 			if (!galleryEl) return;
 			init();
 		}
+
+		// 清理 Fancybox
+		document.addEventListener("astro:before-swap", () => {
+			Fancybox.destroy();
+		});
 
 		if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", initIfPresent);
 		else initIfPresent();
