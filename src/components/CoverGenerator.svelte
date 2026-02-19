@@ -25,6 +25,7 @@
   
   let color = '#000000';
   let bgColor = '#ffffff';
+  let bgColorOpacity = 1; // New background color opacity
   let iconColor = '#000000';
   let useOriginalIconColor = true; // Default to true
 
@@ -54,6 +55,13 @@
   // Theme state for UI only
   let hue = 250;
   let isDark = true;
+  // Icon Background State
+  let iconBgEnabled = false;
+  let iconBgRadius = 20; // 0 to 50 (50% is circle)
+  let iconBgColor = '#000000';
+  let iconBgOpacity = 0.2;
+  let iconBgBlur = 0;
+  let iconBgPadding = 10;
   // Icon Search
   let searchQuery = '';
   let searchResults: string[] = [];
@@ -354,20 +362,24 @@
 
         const svgClone = svgContainer.cloneNode(true) as SVGSVGElement;
         
+        // Remove checkerboard pattern definition to prevent it from being used
+        const defs = svgClone.querySelector('defs');
+        if (defs) {
+            const pattern = defs.querySelector('#checkerboard');
+            if (pattern) pattern.remove();
+        }
+        
         // Fix internal elements dimensions to absolute values to support cropping via viewBox
         // Percentages in SVG resolve to the viewport size. When we change the SVG width/height for export,
         // 100% would resolve to the new smaller width, causing the content to shrink and shift.
         // By fixing them to the original canvasWidth/Height, we ensure they stay in the original coordinate space,
         // allowing viewBox to correctly crop the center.
-        const bgRect = svgClone.querySelector('rect');
-        if (bgRect) {
-            bgRect.setAttribute('width', canvasWidth.toString());
-            bgRect.setAttribute('height', canvasHeight.toString());
-            // Restore solid background color for export if not transparent
-            if (!exportConfig.transparentBg) {
-                bgRect.setAttribute('fill', bgColor);
-            }
-        }
+        const bgRects = svgClone.querySelectorAll('rect');
+        // The first rect is checkerboard (if we keep it), second is solid color.
+        // We actually want to control the solid color rect.
+        // In our template: 
+        // 1. <rect ... fill="url(#checkerboard)" />
+        // 2. <rect ... fill={hexToRgba(bgColor, bgColorOpacity)} />
         
         const fo = svgClone.querySelector('foreignObject');
         if (fo) {
@@ -383,10 +395,21 @@
             bgImg.style.filter = `blur(${bgBlur}px)`;
             bgImg.style.opacity = bgOpacity.toString();
         }
+        const checkerboardRect = bgRects[0];
+        if (checkerboardRect) checkerboardRect.remove();
         
-        // Handle transparent background request
-        if (exportConfig.transparentBg) {
-            if (bgRect) bgRect.setAttribute('fill', 'transparent');
+        const solidBgRect = bgRects[1];
+        if (solidBgRect) {
+            solidBgRect.setAttribute('width', canvasWidth.toString());
+            solidBgRect.setAttribute('height', canvasHeight.toString());
+            
+            // Handle transparent background request
+            if (exportConfig.transparentBg) {
+                solidBgRect.setAttribute('fill', 'none');
+            } else {
+                // Use the opacity user set
+                solidBgRect.setAttribute('fill', hexToRgba(bgColor, bgColorOpacity));
+            }
         }
 
         // Determine which ratios to export
@@ -518,7 +541,11 @@
         </defs>
 
         <!-- Background -->
-        <rect width="100%" height="100%" fill={bgImage ? 'url(#checkerboard)' : bgColor} />
+        <!-- Use checkerboard pattern as the base for transparency visualization -->
+        <rect width="100%" height="100%" fill="url(#checkerboard)" />
+        
+        <!-- Render solid background color with opacity on top of checkerboard -->
+        <rect width="100%" height="100%" fill={hexToRgba(bgColor, bgColorOpacity)} />
         
         {#if bgImage}
             <image 
@@ -557,13 +584,25 @@
                 
                 {#if iconSvg}
                     <div style="
-                        width: {iconSize}px; 
-                        height: {iconSize}px; 
-                        color: {useOriginalIconColor ? 'inherit' : iconColor}; 
-                        filter: drop-shadow({iconShadow.x}px {iconShadow.y}px {iconShadow.blur}px {hexToRgba(iconShadow.color, iconShadow.alpha)});
+                        width: {iconSize + iconBgPadding * 2}px; 
+                        height: {iconSize + iconBgPadding * 2}px; 
                         display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        background-color: {iconBgEnabled ? hexToRgba(iconBgColor, iconBgOpacity) : 'transparent'};
+                        backdrop-filter: {iconBgEnabled && iconBgBlur > 0 ? `blur(${iconBgBlur}px)` : 'none'};
+                        -webkit-backdrop-filter: {iconBgEnabled && iconBgBlur > 0 ? `blur(${iconBgBlur}px)` : 'none'};
+                        border-radius: {iconBgEnabled ? `${iconBgRadius}%` : '0'};
                     ">
-                        {@html iconSvg}
+                        <div style="
+                            width: {iconSize}px; 
+                            height: {iconSize}px; 
+                            color: {useOriginalIconColor ? 'inherit' : iconColor}; 
+                            filter: drop-shadow({iconShadow.x}px {iconShadow.y}px {iconShadow.blur}px {hexToRgba(iconShadow.color, iconShadow.alpha)});
+                            display: flex;
+                        ">
+                            {@html iconSvg}
+                        </div>
                     </div>
                 {/if}
 
@@ -693,11 +732,11 @@
                 </div>
                 
                 {#if searchResults.length > 0}
-                    <div class="grid grid-cols-5 gap-2 mt-2 max-h-40 overflow-y-auto p-2 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+                    <div class="grid grid-cols-5 gap-2 mt-2 max-h-40 overflow-y-auto p-2 bg-transparent rounded-lg border border-[var(--line-color)]">
                         {#each searchResults as icon}
                             <button 
                                 on:click={() => selectIcon(icon)}
-                                class="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex flex-col items-center gap-1 group transition-colors aspect-square justify-center"
+                                class="p-2 hover:bg-[var(--btn-regular-bg)] rounded flex flex-col items-center gap-1 group transition-colors aspect-square justify-center text-gray-700 dark:text-gray-300"
                                 title={icon}
                             >
                                 <img src={`https://api.iconify.design/${icon.split(':')[0]}/${icon.split(':')[1]}.svg`} class="w-6 h-6" alt={icon} />
@@ -782,9 +821,17 @@
             <div class="flex items-center justify-between flex-wrap gap-2">
                 <label class="text-sm font-bold text-gray-700 dark:text-gray-300 min-w-[4rem]">背景颜色</label>
                 <div class="flex items-center gap-2">
-                    <input type="text" bind:value={bgColor} class="input-field text-xs !p-1 !h-8 w-24 font-mono text-center" />
-                    <div class="relative w-8 h-8 rounded-full overflow-hidden border border-gray-200 dark:border-gray-600 shadow-sm shrink-0">
-                        <input type="color" bind:value={bgColor} class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[150%] h-[150%] p-0 m-0 border-0 cursor-pointer" />
+                    <div class="flex flex-col items-end gap-1">
+                        <div class="flex items-center gap-2">
+                            <input type="text" bind:value={bgColor} class="input-field text-xs !p-1 !h-8 w-24 font-mono text-center" />
+                            <div class="relative w-8 h-8 rounded-full overflow-hidden border border-gray-200 dark:border-gray-600 shadow-sm shrink-0">
+                                <input type="color" bind:value={bgColor} class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[150%] h-[150%] p-0 m-0 border-0 cursor-pointer" />
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2 w-full justify-end">
+                            <span class="text-[10px] text-gray-500">不透明度 {Math.round(bgColorOpacity * 100)}%</span>
+                            <input type="range" bind:value={bgColorOpacity} min="0" max="1" step="0.01" class="range-slider w-16 h-1" />
+                        </div>
                     </div>
                 </div>
             </div>
@@ -797,6 +844,62 @@
             <Icon icon="material-symbols:auto-fix" class="w-5 h-5" />
             特效与导出
         </h3>
+
+        <!-- Icon Background -->
+        <div class="bg-transparent rounded-lg p-4 space-y-4 border border-[var(--line-color)]">
+            <div class="flex items-center justify-between">
+                <h4 class="text-sm font-bold text-gray-700 dark:text-gray-300">图标背景</h4>
+                <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" bind:checked={iconBgEnabled} class="sr-only peer">
+                    <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-[var(--primary)]"></div>
+                </label>
+            </div>
+
+            {#if iconBgEnabled}
+                <div class="space-y-3 pt-2 border-t border-[var(--line-color)]">
+                    <div class="flex items-center justify-between flex-wrap gap-2">
+                        <label class="text-xs text-gray-500 dark:text-gray-400">背景颜色</label>
+                        <div class="flex items-center gap-2">
+                            <input type="text" bind:value={iconBgColor} class="input-field text-xs !p-1 !h-6 w-20 font-mono" />
+                            <div class="relative w-6 h-6 rounded-full overflow-hidden border border-[var(--line-color)] shadow-sm shrink-0">
+                                <input type="color" bind:value={iconBgColor} class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[150%] h-[150%] p-0 m-0 border-0 cursor-pointer" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="flex flex-col gap-1">
+                            <div class="flex justify-between text-[10px] text-gray-500 dark:text-gray-400">
+                                <label>内边距</label>
+                                <span>{iconBgPadding}px</span>
+                            </div>
+                            <input type="range" bind:value={iconBgPadding} min="0" max="100" class="range-slider h-1" />
+                        </div>
+                        <div class="flex flex-col gap-1">
+                            <div class="flex justify-between text-[10px] text-gray-500 dark:text-gray-400">
+                                <label>圆角半径</label>
+                                <span>{iconBgRadius}%</span>
+                            </div>
+                            <input type="range" bind:value={iconBgRadius} min="0" max="50" class="range-slider h-1" />
+                        </div>
+                        <div class="flex flex-col gap-1">
+                            <div class="flex justify-between text-[10px] text-gray-500 dark:text-gray-400">
+                                <label>模糊</label>
+                                <span>{iconBgBlur}px</span>
+                            </div>
+                            <input type="range" bind:value={iconBgBlur} min="0" max="20" class="range-slider h-1" />
+                        </div>
+                        <div class="flex flex-col gap-1">
+                            <div class="flex justify-between text-[10px] text-gray-500 dark:text-gray-400">
+                                <label>不透明度</label>
+                                <span>{Math.round(iconBgOpacity * 100)}%</span>
+                            </div>
+                            <input type="range" bind:value={iconBgOpacity} min="0" max="1" step="0.01" class="range-slider h-1" />
+                        </div>
+                    </div>
+                </div>
+            {/if}
+        </div>
 
         <!-- Shadows -->
         <div class="bg-transparent rounded-lg p-4 space-y-4 border border-[var(--line-color)]">
