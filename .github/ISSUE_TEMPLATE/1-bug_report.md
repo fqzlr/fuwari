@@ -1,6 +1,7 @@
 ---
 name: 🐛 问题报告 (Bug Report)
 description: 报告网站或代码中的问题
+title: "[Bug]: "
 labels: ["bug", "需要处理"]
 assignees: []
 ---

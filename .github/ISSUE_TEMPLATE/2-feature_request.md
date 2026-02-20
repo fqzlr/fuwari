@@ -1,7 +1,7 @@
 ---
 name: 🚀 功能请求 (Feature Request)
 description: 提出改进网站的想法
-labels: [" enhancement", "需要处理"]
+labels: ["enhancement", "需要处理"]
 assignees: []
 ---
 
