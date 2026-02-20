@@ -6,6 +6,10 @@ interface Props {
 
 const { dataType, class: className } = Astro.props;
 
+const prLink = dataType === 'friends'
+    ? 'https://github.com/afoim/fuwari/compare/main...main?expand=1&template=friends_sponsors.md'
+    : 'https://github.com/afoim/fuwari/compare/main...main?expand=1&template=friends_sponsors.md';
+
 const linkText = dataType === 'friends' 
     ? 'https://github.com/afoim/fuwari/tree/main/src/data/friends'
     : 'https://github.com/afoim/fuwari/tree/main/src/data/sponsors';
@@ -15,7 +19,7 @@ const dataName = dataType === 'friends' ? '友链' : '赞助';
 
 <div class:list={["text-sm text-black/60 dark:text-white/60", className]}>
     <p>
-        如果您已{dataType === 'friends' ? '添加' : '赞助'}，并且想加入{dataName}名单，<a target="_blank" href={linkText} class="transition link text-[var(--primary)] font-medium underline">请点击这里提交</a>
+        如果您已{dataType === 'friends' ? '添加' : '赞助'}，并且想加入{dataName}名单，<a target="_blank" href={prLink} class="transition link text-[var(--primary)] font-medium underline">请点击这里提交 PR</a>，或<a target="_blank" href={linkText} class="transition link text-[var(--primary)] font-medium underline">查看数据目录</a>
     </p>
     <p class="mt-2">
         我们会定期通过 Github Action 运行一个工作流，使用 Github 的 IP 对这里的所有站点做访问性测试，如果不通过测试（如网站无法访问），该条目将被<strong>自动删除</strong>。当您再次做好准备时，欢迎再次提交 PR 申请。访问性测试结果可以<a target="_blank" href="https://github.com/afoim/fuwari/actions/workflows/check-links.yml" class="transition link text-[var(--primary)] font-medium underline">访问此 URL 来得知</a>。
