@@ -193,7 +193,47 @@ themeColor: {
 
 欢迎提交 Issue 和 Pull Request！
 
-请阅读 [CONTRIBUTING.md](CONTRIBUTING.md) 了解详细的贡献指南。
+### Issue 模板
+
+创建 Issue 时请选择合适的模板：
+
+- **🐛 问题报告**：报告网站或代码中的问题
+- **🚀 功能请求**：提出改进网站的想法
+
+### Pull Request 模板
+
+提交 PR 时请确保：
+
+1. 描述你修复的问题或添加的功能背景
+2. 说明修改后的预期行为
+3. 详细说明你的修改内容和实现思路
+4. 检查是否与上游仓库冲突
+
+### 开发环境
+
+```bash
+# 克隆仓库
+git clone https://github.com/afoim/fuwari.git
+cd fuwari
+
+# 安装依赖
+pnpm install
+
+# 启动开发服务器
+pnpm dev
+```
+
+### 代码规范
+
+```bash
+# 格式化代码
+pnpm format
+
+# 代码检查
+pnpm lint
+```
+
+详细的贡献指南请阅读 [CONTRIBUTING.md](CONTRIBUTING.md)。
 
 ## 📄 许可证
 
