@@ -12,6 +12,7 @@ interface SearchResult {
 	excerpt: string;
 	urlPath?: string;
 	highlightQuery?: string;
+	matchCount: number;
 }
 
 let keywordDesktop = "";
@@ -65,8 +66,12 @@ const search = async (keyword: string, isDesktop: boolean): Promise<void> => {
 				);
 			})
 			.map((post) => {
-				const contentLower = post.content.toLowerCase();
 				const keywordLower = keyword.toLowerCase();
+				const titleLower = post.title.toLowerCase();
+				const descriptionLower = post.description.toLowerCase();
+				const contentLower = post.content.toLowerCase();
+				const linkLower = post.link.toLowerCase();
+
 				const contentIndex = contentLower.indexOf(keywordLower);
 				let excerpt = "";
 				if (contentIndex !== -1) {
@@ -79,12 +84,24 @@ const search = async (keyword: string, isDesktop: boolean): Promise<void> => {
 					excerpt = post.description || `${post.content.substring(0, 150)}...`;
 				}
 
+				let matchCount = 0;
+				const regex = new RegExp(keywordLower, "gi");
+				const titleMatches = titleLower.match(regex);
+				const descriptionMatches = descriptionLower.match(regex);
+				const contentMatches = contentLower.match(regex);
+				const linkMatches = linkLower.match(regex);
+				if (titleMatches) matchCount += titleMatches.length;
+				if (descriptionMatches) matchCount += descriptionMatches.length;
+				if (contentMatches) matchCount += contentMatches.length;
+				if (linkMatches) matchCount += linkMatches.length;
+
 				return {
 					url: url(`/posts/${post.link}/`),
 					meta: { title: post.title },
 					excerpt,
 					urlPath: `/posts/${post.link}`,
 					highlightQuery: keyword,
+					matchCount,
 				};
 			});
 
@@ -172,6 +189,13 @@ top-20 left-4 md:left-[unset] right-4 shadow-2xl rounded-2xl p-2">
         >
     </div>
 
+    <!-- search results header -->
+    {#if result.length > 0}
+        <div class="text-xs text-black/40 dark:text-white/40 px-3 py-2 border-b border-black/5 dark:border-white/5">
+            {result.length} 条搜索结果
+        </div>
+    {/if}
+
     <!-- search results -->
     {#each result as item}
         <a href={item.url} on:click={closePanel}
@@ -183,6 +207,7 @@ top-20 left-4 md:left-[unset] right-4 shadow-2xl rounded-2xl p-2">
             </div>
             <div class="transition text-xs text-black/50 dark:text-white/50 mb-1 font-mono">
                 <Highlight text={item.urlPath} query={item.highlightQuery} />
+                <span class="ml-2 text-[var(--primary)]">命中 {item.matchCount} 个关键词</span>
             </div>
             <div class="transition text-sm text-50">
                 <Highlight text={item.excerpt} query={item.highlightQuery} />
@@ -193,10 +218,7 @@ top-20 left-4 md:left-[unset] right-4 shadow-2xl rounded-2xl p-2">
 
 <style>
   :global(.hl) {
-    background-color: var(--primary);
-    color: white;
-    padding: 0 2px;
-    border-radius: 2px;
+    color: var(--primary);
   }
   :global(.hl.no-wrap) {
     white-space: nowrap;
@@ -218,9 +240,7 @@ top-20 left-4 md:left-[unset] right-4 shadow-2xl rounded-2xl p-2">
   }
 
   .search-panel :global(mark) {
-    background-color: var(--primary);
-    color: white;
-    padding: 0 2px;
-    border-radius: 2px;
+    color: var(--primary);
+    background: none;
   }
 </style>
