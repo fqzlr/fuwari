@@ -1,34 +1,38 @@
 ---
-name: Bug Report
-description: Report a bug or issue with the website
-labels: ["bug", "triage"]
+name: 🐛 问题报告 (Bug Report)
+description: 报告网站或代码中的问题
+labels: ["bug", "需要处理"]
 assignees: []
 ---
 
-## Description
-<!-- Describe the bug or issue you encountered in detail -->
+## 1. 遇到了什么问题？
 
-## Steps to Reproduce
-<!-- List the steps to reproduce the issue -->
-1. 
-2. 
-3. 
+请详细描述你遇到的问题，包括：
+- 期望行为
+- 实际行为
+- 错误信息（如有）
 
-## Expected Behavior
-<!-- Describe what you expected to happen -->
+## 2. 预期工作的形式？
 
-## Actual Behavior
-<!-- Describe what actually happened -->
+描述你希望该功能或修复如何工作。
 
-## Environment
-<!-- Provide details about your environment -->
-- Browser: 
-- Version: 
-- OS: 
-- Device: 
+## 3. 解决该问题的思路（若有）
 
-## Screenshots
-<!-- If applicable, add screenshots to help explain your problem -->
+如果你已经思考过解决方案，请分享你的想法。即使不完整，也能帮助我们更好地理解问题。
 
-## Additional Context
-<!-- Any additional information that might be helpful -->
+---
+
+## 环境信息
+
+- 浏览器：
+- 版本：
+- 操作系统：
+- 设备：
+
+## 屏幕截图
+
+（如有，请添加截图以帮助说明问题）
+
+## 其他上下文
+
+（任何其他可能有帮助的信息）

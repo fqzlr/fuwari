@@ -1,34 +1,35 @@
-# Fuwari For AcoFork 
+# Fuwari For AcoFork
 
-### 有问题？尝试 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/afoim/fuwari)
+### 有疑问？尝试 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/afoim/fuwari)
 
 > [!CAUTION]
 > 该仓库由 AcoFork 深度定制，并包含了最新的文章，如果你想以此为模板进行二改，需要一定的动手能力。
 
 <img width="1858" height="948" alt="image" src="https://github.com/user-attachments/assets/55c2c63b-0dac-436e-aaa0-451ad2dfb65a" />
 
-
 一个基于 Astro 构建的现代化个人博客主题，专注于技术分享与实践。
 
 ## ✨ 特性
 
-- 🚀 基于 Astro 4.0+ 构建，性能卓越
+- 🚀 基于 Astro 5.0+ 构建，性能卓越
 - 📱 完全响应式设计，支持移动端
-- 🌙 支持深色/浅色主题切换
+- 🌈 支持深色/浅色/自动主题切换 + 可自定义主题色彩
+- 🎨 彩虹模式，让页面更加缤纷
 - 📝 支持 Markdown 和 MDX 格式
 - 🔍 内置搜索功能
 - 📊 文章阅读时间统计
 - 🏷️ 标签和分类系统
 - 📈 SEO 优化
-- 🎨 可自定义配置
-- 💬 评论系统支持
+- 💬 评论系统支持（Giscus）
 - 📡 RSS 订阅支持
+- 🎯 文章更新提醒
+- 🖼️ 内置画廊与封面生成器
 
 ## 🛠️ 技术栈
 
-- **框架**: Astro
+- **框架**: Astro 5.x
 - **样式**: Tailwind CSS + Stylus
-- **交互**: Svelte
+- **交互**: Svelte 5
 - **构建工具**: Vite
 - **包管理**: pnpm
 - **代码规范**: Biome
@@ -38,7 +39,7 @@
 ### 环境要求
 
 - Node.js 18+
-- pnpm
+- pnpm 9.x
 
 ### 安装依赖
 
@@ -148,8 +149,10 @@ draft: false
 │   ├── layouts/           # 布局
 │   ├── pages/             # 页面
 │   ├── styles/            # 样式
+│   ├── plugins/           # 自定义插件
+│   ├── scripts/           # 脚本工具
 │   └── config.ts          # 配置文件
-├── scripts/               # 脚本工具
+├── scripts/               # 构建脚本
 └── package.json
 ```
 
@@ -166,6 +169,10 @@ themeColor: {
 }
 ```
 
+### 彩虹模式
+
+网站支持彩虹模式，可让页面更加缤纷！在设置面板中开启"彩虹模式"即可体验。
+
 ### 样式定制
 
 - 全局样式：`src/styles/main.css`
@@ -176,9 +183,17 @@ themeColor: {
 
 构建后的静态文件位于 `dist/` 目录，可部署到任何静态托管平台。
 
+推荐平台：
+- Vercel
+- Cloudflare Pages
+- Netlify
+- EdgeOne Pages
+
 ## 🤝 贡献
 
 欢迎提交 Issue 和 Pull Request！
+
+请阅读 [CONTRIBUTING.md](CONTRIBUTING.md) 了解详细的贡献指南。
 
 ## 📄 许可证
 

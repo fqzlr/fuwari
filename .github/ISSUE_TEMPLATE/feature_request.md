@@ -1,24 +1,36 @@
 ---
-name: Feature Request
-description: Suggest an idea for improving the website
-labels: ["enhancement", "triage"]
+name: 🚀 功能请求 (Feature Request)
+description: 提出改进网站的想法
+labels: [" enhancement", "需要处理"]
 assignees: []
 ---
 
-## Feature Request
-<!-- Describe the feature you'd like to see implemented -->
+## 1. 遇到了什么问题？
 
-## Use Case
-<!-- Explain the problem or use case this feature would solve -->
+描述你想解决的问题或需求背景。
 
-## Expected Behavior
-<!-- Describe how you expect the feature to work -->
+## 2. 预期工作的形式？
 
-## Alternative Solutions
-<!-- Have you considered any alternative solutions? -->
+描述你希望该功能如何工作。
 
-## References
-<!-- Include any relevant links, screenshots, or references -->
+## 3. 解决该问题的思路（若有）
 
-## Additional Context
-<!-- Any additional information that might be helpful -->
+如果你已经思考过解决方案，请分享你的想法。
+
+---
+
+## 预期行为
+
+描述你期望的功能如何工作。
+
+## 替代方案
+
+你是否考虑过其他解决方案？
+
+## 参考资料
+
+（如有，请包含相关链接、截图或参考资料）
+
+## 其他上下文
+
+（任何其他可能有帮助的信息）

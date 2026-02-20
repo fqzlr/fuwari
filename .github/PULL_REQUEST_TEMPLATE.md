@@ -1,40 +1,60 @@
 ---
-name: Pull Request Template
-description: Guidelines for submitting pull requests
-labels: ["pr", "triage"]
+name: 拉取请求模板 (Pull Request Template)
+description: 提交拉取请求的指南
+labels: ["pr", "需要处理"]
 assignees: []
 ---
 
-## Description
-<!-- Describe the changes you've made in detail -->
+## 1. 遇到了什么问题？
 
-## Type of Change
-<!-- What type of change does this PR introduce? -->
-- [ ] Bug fix
-- [ ] New feature
-- [ ] Breaking change
-- [ ] Documentation update
-- [ ] Code refactoring
-- [ ] Testing
-- [ ] Build/CI/CD changes
+描述你修复的问题或添加的功能背景。
 
-## Checklist
-<!-- Ensure you've completed the following steps -->
-- [ ] I have read the [contribution guidelines](CONTRIBUTING.md)
-- [ ] I have added tests for new functionality
-- [ ] I have updated relevant documentation
-- [ ] I have followed the code style of the project
-- [ ] I have run the tests and they pass
-- [ ] I have checked that the site builds successfully
+## 2. 预期工作的形式？
 
-## How to Test
-<!-- Describe how to test your changes -->
+描述修改后的预期行为。
 
-## Screenshots
-<!-- If applicable, add screenshots to help explain your changes -->
+## 3. 解决该问题的方案
 
-## Related Issues
-<!-- Link to any related issues or pull requests -->
+详细说明你的修改内容和实现思路。
 
-## Additional Context
-<!-- Any additional information that might be helpful -->
+## 4. 是否与当前上游冲突？
+
+- [ ] 已检查与上游仓库的兼容性
+- [ ] 无冲突或已解决冲突
+
+---
+
+## 变更类型
+
+- [ ] Bug 修复
+- [ ] 新功能
+- [ ] 破坏性变更
+- [ ] 文档更新
+- [ ] 代码重构
+- [ ] 测试
+- [ ] 构建/CI/CD 变更
+
+## 检查清单
+
+- [ ] 已阅读 [贡献指南](CONTRIBUTING.md)
+- [ ] 已添加新功能的测试
+- [ ] 已更新相关文档
+- [ ] 已遵循项目的代码风格
+- [ ] 已运行测试且通过
+- [ ] 已确认站点构建成功
+
+## 如何测试
+
+描述如何测试你的修改。
+
+## 屏幕截图
+
+（如有，请添加截图以帮助说明你的修改）
+
+## 相关 Issue
+
+（链接到任何相关的 Issue 或 Pull Request）
+
+## 其他上下文
+
+（任何其他可能有帮助的信息）
