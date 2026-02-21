@@ -329,13 +329,15 @@ import { Icon } from "astro-icon/components";
 
         list.innerHTML = html;
         
-        // Show red dot ONLY if it is a fresh update
-        if (isFresh) {
+        // Show red dot if there are any posts with changes
+        if (newPosts.length > 0) {
              dot?.classList.remove('hidden');
-             // Auto-open panel on first load if there are updates
-             setTimeout(() => {
-                 openPanel();
-             }, 1500);
+             // Auto-open panel only on first detection (isFresh)
+             if (isFresh) {
+                 setTimeout(() => {
+                     openPanel();
+                 }, 1500);
+             }
         } else {
              dot?.classList.add('hidden');
         }
@@ -408,7 +410,6 @@ import { Icon } from "astro-icon/components";
                 panel.removeAttribute('data-open-timer');
             }, 360);
             panel.setAttribute('data-open-timer', String(timer));
-            dot?.classList.add('hidden');
         };
 
         const closePanel = () => {
