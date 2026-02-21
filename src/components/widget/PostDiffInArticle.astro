@@ -3,6 +3,8 @@
 
 <script>
 	const NOTIFICATION_STATE_KEY = "fuwari-notification-state";
+	const DEBUG_PARAM_KEY = "__diff_debug";
+	const DEBUG_STATE_KEY = "fuwari-diff-debug-state";
 	const CONTEXT_LINES = 2;
 
 	function normalizeGuid(guid, link) {
@@ -39,6 +41,18 @@
 			.querySelectorAll("[data-post-inline-diff-add-target]")
 			.forEach((el) => el.removeAttribute("data-post-inline-diff-add-target"));
 		container.querySelectorAll(".post-inline-diff-add-target").forEach((el) => el.classList.remove("post-inline-diff-add-target"));
+		container
+			.querySelectorAll("[data-post-inline-diff-add-target-img]")
+			.forEach((el) => el.removeAttribute("data-post-inline-diff-add-target-img"));
+		container.querySelectorAll(".post-inline-diff-add-target-img").forEach((el) => el.classList.remove("post-inline-diff-add-target-img"));
+		container
+			.querySelectorAll("[data-post-inline-diff-del-target]")
+			.forEach((el) => el.removeAttribute("data-post-inline-diff-del-target"));
+		container.querySelectorAll(".post-inline-diff-del-target").forEach((el) => el.classList.remove("post-inline-diff-del-target"));
+		container
+			.querySelectorAll("[data-post-inline-diff-del-target-img]")
+			.forEach((el) => el.removeAttribute("data-post-inline-diff-del-target-img"));
+		container.querySelectorAll(".post-inline-diff-del-target-img").forEach((el) => el.classList.remove("post-inline-diff-del-target-img"));
 	}
 
 	function buildRows(diffParts) {
@@ -48,6 +62,121 @@
 		for (const part of diffParts) {
 			const type = part?.added ? "add" : part?.removed ? "del" : "ctx";
 			const value = String(part?.value ?? "");
+            // Split by newline BUT KEEP NEWLINES if present, or just treat as single block if no newlines?
+            // Actually, for char diff, we might get parts like "abc" (no newline).
+            // The previous logic was splitting by \n.
+            // If value is "abc", split("\n") gives ["abc"]. Correct.
+            // If value is "abc\ndef", split gives ["abc", "def"]. Correct.
+            // If value is "abc\n", split gives ["abc", ""]. Then pop() removes empty string. Result ["abc"].
+            // This logic is problematic for inline diffs where trailing newline might not be intended or matters less.
+            // But for titles, usually no newlines.
+            
+            // The issue might be that diffParts are somehow normalized?
+            // No, diffChars produces parts.
+            
+            // What if `value` contains spaces? e.g. " - 改".
+            // split("\n") works.
+            
+            // Wait, if the value is purely whitespace or something that gets stripped?
+            // normalizeLineText strips trailing spaces.
+            
+            // Ah, buildRows calls normalizeLineText inside applyInlineDiff but NOT here.
+            // Here we just push text.
+            
+            // BUT, wait. applyInlineDiff uses buildRows, then sliceWithContext.
+            // applySimpleDiff uses buildRows directly.
+            
+            // The issue is likely how `rows` are constructed or consumed.
+            // Let's look at applySimpleDiff again.
+            /*
+            for (const row of rows) {
+                if (row.type === "ctx") ...
+                else if (row.type === "add") ...
+            }
+            */
+            
+            // If the title is "Foo", and we add "Bar", diffChars gives:
+            // [{value: "Foo", count: 3, removed: undefined, added: undefined}, {value: "Bar", count: 3, added: true, ...}]
+            // buildRows:
+            // 1. ctx "Foo" -> lines ["Foo"] -> row {type: ctx, text: "Foo"}
+            // 2. add "Bar" -> lines ["Bar"] -> row {type: add, text: "Bar"}
+            
+            // applySimpleDiff:
+            // 1. span.textContent = "Foo"
+            // 2. span.className = ...add..., textContent = "Bar"
+            
+            // This looks correct.
+            
+            // Why did the user see NO change?
+            // "我看无变化 <span data-astro-cid-egg7nqdx="">文章更新提醒功能食用指南</span>"
+            // This HTML structure `<div ...><span>Title</span></div>` is what `src/pages/posts/[...slug].astro` renders initially.
+            // If `applySimpleDiff` runs, it does `container.innerHTML = ""`.
+            // So the `<span>` inside `div#post-title` should be GONE.
+            // The fact that it is still there means `applySimpleDiff` did NOT run on that container, OR `container` was not found.
+            
+            // In `initPostInlineDiff`:
+            // `if (diffType === 'title') container = document.getElementById('post-title');`
+            
+            // In `src/pages/posts/[...slug].astro`:
+            // `<div id="post-title" ...> <span>{entry.data.title}</span> </div>`
+            
+            // So `document.getElementById('post-title')` should find the DIV.
+            
+            // If it found the DIV, it should clear it.
+            
+            // So either:
+            // 1. `shouldApply` is false.
+            // 2. `matched` is undefined.
+            // 3. `matched.diff` is undefined.
+            // 4. `diffType` is not 'title' (but we saw it was).
+            
+            // In the previous turn, the user said "简介的确如你所说...但是标题我看无变化".
+            // This implies the Description diff worked!
+            // So `initPostInlineDiff` IS running and finding the match.
+            // If Description worked, `matched` is correct.
+            
+            // So `diffType` must be the issue.
+            // In `DiffDebugEditor`, `computeDiffWithMeta` returns `{ diff: ..., diffType: 'title' }`.
+            // But wait, `computeDiffWithMeta` checks:
+            // 1. Content
+            // 2. Description
+            // 3. Title
+            
+            // If I change BOTH Title and Description (or just Title?), what happens?
+            // The user said "简介的确更改后有变化，但是标题无变化".
+            // Did they change BOTH?
+            // If they changed BOTH, `computeDiffWithMeta` returns the FIRST one it finds.
+            // If content changed -> returns content diff.
+            // If content same, description changed -> returns description diff.
+            // If content & desc same, title changed -> returns title diff.
+            
+            // So if user changed Title AND Description, `computeDiffWithMeta` returns Description diff (priority 2).
+            // Title diff (priority 3) is IGNORED.
+            
+            // This explains why they see Description change but not Title change!
+            // Because we only return ONE diff type per post entry.
+            
+            // To support multiple diffs (e.g. Title changed AND Description changed), we need to return ALL changes.
+            // But `NewPostNotification` and `PostDiffInArticle` seem designed to handle one "main" diff for the post.
+            
+            // However, we can relax this.
+            // We can make `diff` an object containing `{ title: ..., description: ..., content: ... }`?
+            // Or `diffType` can be an array?
+            
+            // The current structure in `NewPostNotification` pushes a single item to `detectedChanges`.
+            // `detectedChanges.push({ ...post, diff, diffType })`
+            
+            // If we want to show ALL changes, we need to restructure.
+            // Or simpler: We just check all of them and return a composite result.
+            
+            // But `applySimpleDiff` and `applyInlineDiff` are specific.
+            // `applyInlineDiff` expects line-based diffs for content.
+            // `applySimpleDiff` expects char-based diffs for title/desc.
+            
+            // If we want to support multiple, we should update `initPostInlineDiff` to apply all present diffs.
+            
+            // Let's modify `DiffDebugEditor` to return all diffs, and `PostDiffInArticle` to handle them.
+            
 			const lines = value.split("\n");
 			if (lines.length > 0 && lines[lines.length - 1] === "") lines.pop();
 			for (const line of lines) rows.push({ type, text: line });
@@ -106,31 +235,6 @@
 		return hunks;
 	}
 
-	function findAnchorElement(container, hunk) {
-		const pick = (row) => String(row?.text ?? "").trim();
-		const ctx = hunk.find((r) => r.type === "ctx" && pick(r).length >= 6);
-		const add = hunk.find((r) => r.type === "add" && pick(r).length >= 6);
-		const del = hunk.find((r) => r.type === "del" && pick(r).length >= 6);
-		const anchorText = pick(ctx || add || del);
-		if (!anchorText) return null;
-
-		const needle = anchorText.slice(0, 48);
-		const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT);
-
-		/** @type {Text | null} */
-		let node;
-		while ((node = walker.nextNode())) {
-			const content = node.textContent || "";
-			if (!content.includes(needle)) continue;
-			const parent = node.parentElement;
-			if (!parent) return null;
-			const block = parent.closest("p, li, blockquote, pre, h1, h2, h3, h4, h5, h6");
-			return block || parent;
-		}
-
-		return null;
-	}
-
 	function normalizeLineText(text) {
 		return String(text ?? "")
 			.replace(/\r\n/g, "\n")
@@ -140,20 +244,83 @@
 			.trim();
 	}
 
-	function lineExistsInArticle(container, lineText) {
-		const t = normalizeLineText(lineText);
-		if (!t) return false;
-		const needle = t.slice(0, 48);
-		return container.textContent?.includes(needle) ?? false;
+	function extractImgSrc(line) {
+		const s = String(line ?? "");
+		const m = s.match(/<img[^>]*\s(?:src|data-src)=["']([^"']+)["']/i);
+		return m?.[1] ? String(m[1]).trim() : null;
 	}
 
-	function findBlockByText(container, lineText) {
-		const t = normalizeLineText(lineText);
-		if (!t) return null;
-		const needle = t.slice(0, 48);
+	function stripHtmlLine(line) {
+		const tmp = document.createElement("div");
+		tmp.innerHTML = String(line ?? "");
+		return tmp.textContent || tmp.innerText || "";
+	}
+
+	function normalizeForMatch(line) {
+		const text = normalizeLineText(stripHtmlLine(line));
+		if (text) return { kind: "text", value: text };
+		const imgSrc = extractImgSrc(line);
+		if (imgSrc) return { kind: "img", value: imgSrc };
+		const raw = normalizeLineText(line);
+		if (raw) return { kind: "text", value: raw };
+		return { kind: "none", value: "" };
+	}
+
+	function findImgBySrc(container, src) {
+		const norm = String(src || "").trim();
+		if (!norm) return null;
+		const imgs = container.querySelectorAll("img");
+		for (const img of imgs) {
+			if (!(img instanceof HTMLImageElement)) continue;
+			const cand = img.getAttribute("src") || img.getAttribute("data-src") || "";
+			if (cand === norm) return img;
+			if (cand && norm && (cand.includes(norm) || norm.includes(cand))) return img;
+		}
+		return null;
+	}
+
+	function getBlockList(container) {
+		return Array.from(container.querySelectorAll("p, li, blockquote, pre, h1, h2, h3, h4, h5, h6, img")).filter((el) => el instanceof HTMLElement);
+	}
+
+	function findContextBefore(container, hunk, rowIndex) {
+		for (let i = rowIndex - 1; i >= 0; i -= 1) {
+			const row = hunk[i];
+			if (row?.type !== "ctx") continue;
+			const el = findBlockByText(container, row.text);
+			if (el) return el;
+		}
+		return null;
+	}
+
+	function findContextAfter(container, hunk, rowIndex) {
+		for (let i = rowIndex + 1; i < hunk.length; i += 1) {
+			const row = hunk[i];
+			if (row?.type !== "ctx") continue;
+			const el = findBlockByText(container, row.text);
+			if (el) return el;
+		}
+		return null;
+	}
+
+	function lineExistsInArticle(container, line) {
+		const key = normalizeForMatch(line);
+		if (key.kind === "img") return !!findImgBySrc(container, key.value);
+		if (key.kind !== "text") return false;
+		return !!findBlockByText(container, line);
+	}
+
+	function findBlockByText(container, line) {
+		const key = normalizeForMatch(line);
+		if (key.kind !== "text") return null;
+		const needle = key.value.slice(0, 48);
 		const blocks = container.querySelectorAll("p, li, blockquote, pre, h1, h2, h3, h4, h5, h6");
 		for (const el of blocks) {
 			if (!(el instanceof HTMLElement)) continue;
+			if (el.closest(".post-inline-diff-add-line")) continue;
+			if (el.closest(".post-inline-diff-del-line")) continue;
+			if (el.classList.contains("post-inline-diff-del-target")) continue;
+
 			const content = el.textContent || "";
 			if (!content.includes(needle)) continue;
 			return el;
@@ -162,8 +329,20 @@
 		return null;
 	}
 
+	function findAnchorElement(container, hunk) {
+		const pick = (row) => String(row?.text ?? "").trim();
+		const ctx = hunk.find((r) => r.type === "ctx" && pick(r).length >= 6);
+		// Prefer context, then try others
+		const anchorLine = ctx?.text ?? ""; 
+		if (!anchorLine) return null;
+		
+		const key = normalizeForMatch(anchorLine);
+		if (key.kind === "img") return findImgBySrc(container, key.value);
+		return findBlockByText(container, anchorLine);
+	}
+
 	function createDeletionNode(text, includeAnchor, useListItem) {
-		const el = document.createElement(useListItem ? "li" : "p");
+		const el = document.createElement(useListItem ? "li" : "div");
 		el.setAttribute("data-post-inline-diff", "1");
 		el.className = "post-inline-diff-del-line";
 
@@ -174,15 +353,70 @@
 			el.appendChild(anchor);
 		}
 
-		const prefix = document.createElement("span");
-		prefix.className = "post-inline-diff-prefix";
-		prefix.textContent = "-";
-
 		const del = document.createElement("del");
 		del.textContent = ` ${normalizeLineText(text)}`;
 
-		el.appendChild(prefix);
 		el.appendChild(del);
+		return el;
+	}
+
+	function sanitizeHtmlFragment(html) {
+		const parser = new DOMParser();
+		const doc = parser.parseFromString(`<div>${String(html || "")}</div>`, "text/html");
+		const root = doc.body.firstElementChild;
+		if (!(root instanceof HTMLElement)) return "";
+
+		const bannedTags = new Set(["SCRIPT", "IFRAME", "OBJECT", "EMBED"]);
+		const walker = doc.createTreeWalker(root, NodeFilter.SHOW_ELEMENT);
+		/** @type {Element | null} */
+		let node;
+		while ((node = walker.nextNode())) {
+			if (bannedTags.has(node.tagName)) {
+				node.remove();
+				continue;
+			}
+			const attrs = Array.from(node.attributes);
+			for (const attr of attrs) {
+				const name = attr.name.toLowerCase();
+				if (name.startsWith("on")) node.removeAttribute(attr.name);
+				if (name === "srcdoc") node.removeAttribute(attr.name);
+			}
+		}
+
+		return root.innerHTML || "";
+	}
+
+	function shouldRenderLineAsHtml(line) {
+		const t = String(line || "").trim();
+		if (!t.startsWith("<")) return false;
+		if (t.startsWith("</")) return false;
+		const m = t.match(/^<\s*([a-z0-9-]+)/i);
+		const tag = (m?.[1] || "").toLowerCase();
+		if (!tag) return false;
+		const allowed = new Set(["p", "img", "h1", "h2", "h3", "h4", "h5", "h6", "blockquote", "pre", "code", "a", "strong", "em", "hr", "br", "ul", "ol", "li", "span", "div"]);
+		return allowed.has(tag);
+	}
+
+	function createAdditionNode(text, includeAnchor, useListItem) {
+		const el = document.createElement(useListItem ? "li" : "div");
+		el.setAttribute("data-post-inline-diff", "1");
+		el.className = "post-inline-diff-add-line";
+
+		if (includeAnchor) {
+			const anchor = document.createElement("span");
+			anchor.id = "post-diff";
+			anchor.setAttribute("data-post-inline-diff", "1");
+			el.appendChild(anchor);
+		}
+
+		const content = document.createElement("div");
+		content.className = "post-inline-diff-add-content";
+
+		const raw = String(text ?? "").trim();
+		if (shouldRenderLineAsHtml(raw)) content.innerHTML = sanitizeHtmlFragment(raw);
+		else content.textContent = raw;
+
+		el.appendChild(content);
 		return el;
 	}
 
@@ -193,7 +427,7 @@
 		return true;
 	}
 
-	function applyInlineDiff(container, diffParts) {
+	function applyInlineDiff(container, diffParts, isDebug) {
 		clearInlineDiff(container);
 		const rows = buildRows(diffParts);
 		const focused = sliceWithContext(rows);
@@ -202,19 +436,74 @@
 		let insertedAnchor = false;
 		for (const hunk of hunks) {
 			const insertionPoint = findAnchorElement(container, hunk);
-			for (const row of hunk) {
+			for (let idx = 0; idx < hunk.length; idx += 1) {
+				const row = hunk[idx];
 				if (row.type !== "add") continue;
-				const target = findBlockByText(container, row.text);
-				if (!(target instanceof HTMLElement)) continue;
-				target.classList.add("post-inline-diff-add-target");
-				target.setAttribute("data-post-inline-diff-add-target", "1");
+				
+				// Group consecutive add lines to handle fragmented HTML (e.g. <p>\n<img>\n</p>)
+				let endIdx = idx;
+				let combinedText = row.text;
+				while (endIdx + 1 < hunk.length && hunk[endIdx + 1].type === "add") {
+					endIdx++;
+					combinedText += "\n" + hunk[endIdx].text;
+				}
+
+				// If we have a multi-line block, use it.
+				// If it's single line, we just proceed as before.
+				// But we must use combinedText.
+
+				// For context, we use the start of the block for 'before' and end of block for 'after'
+				const ctxBefore = findContextBefore(container, hunk, idx);
+				const ctxAfter = findContextAfter(container, hunk, endIdx);
+
+				const useListItem = (ctxBefore?.tagName === "LI") || (ctxAfter?.tagName === "LI");
+				
+				// We don't use 'key' for insertion anymore since we just render the raw HTML/text
+				// But for consistency with single-line logic (like handling isolated images), we can check.
+				// Actually, createAdditionNode handles HTML parsing.
+				// Just pass the combined text.
+				
+				const node = createAdditionNode(combinedText, !insertedAnchor, useListItem);
+				if (!insertedAnchor) insertedAnchor = true;
+
+				let inserted = false;
+				if (ctxBefore?.parentNode) inserted = insertAfter(node, ctxBefore);
+				if (!inserted && ctxAfter?.parentNode) {
+					ctxAfter.parentNode.insertBefore(node, ctxAfter);
+					inserted = true;
+				}
+				if (!inserted) {
+					if (insertionPoint?.parentNode) insertionPoint.parentNode.insertBefore(node, insertionPoint);
+					else container.prepend(node);
+				}
+				
+				// Skip the rows we just processed
+				idx = endIdx;
 			}
 
 			for (const row of hunk) {
 				if (row.type !== "del") continue;
-				const t = normalizeLineText(row.text);
-				if (!t) continue;
-				if (lineExistsInArticle(container, t)) continue;
+				const key = normalizeForMatch(row.text);
+				if (key.kind === "none") continue;
+
+				if (lineExistsInArticle(container, row.text)) {
+					if (key.kind === "img") {
+						const img = findImgBySrc(container, key.value);
+						if (img instanceof HTMLElement) {
+							img.classList.add("post-inline-diff-del-target-img");
+							img.setAttribute("data-post-inline-diff-del-target-img", "1");
+						}
+						continue;
+					}
+					const target = findBlockByText(container, row.text);
+					if (target instanceof HTMLElement) {
+						target.classList.add("post-inline-diff-del-target");
+						target.setAttribute("data-post-inline-diff-del-target", "1");
+					}
+					continue;
+				}
+
+				const t = key.kind === "img" ? `[图片] ${key.value}` : key.value;
 
 				let inserted = false;
 
@@ -256,13 +545,52 @@
 		}
 	}
 
-	function initPostInlineDiff() {
-		const container = document.querySelector(".markdown-content");
-		if (!(container instanceof HTMLElement)) return;
+	function applySimpleDiff(container, diffParts) {
+		container.innerHTML = "";
+		const rows = buildRows(diffParts);
+		
+		for (const row of rows) {
+			if (row.type === "ctx") {
+				const span = document.createElement("span");
+				span.textContent = row.text;
+				container.appendChild(span);
+			} else if (row.type === "add") {
+				const span = document.createElement("span");
+				span.className = "post-inline-diff-add-target";
+				span.textContent = row.text;
+				// Add anchor for scrolling
+				if (!container.querySelector("#post-diff")) {
+					const anchor = document.createElement("span");
+					anchor.id = "post-diff";
+					container.appendChild(anchor);
+				}
+				container.appendChild(span);
+			} else if (row.type === "del") {
+				const span = document.createElement("span");
+				span.className = "post-inline-diff-del-target";
+				span.textContent = row.text;
+				container.appendChild(span);
+			}
+		}
+	}
 
-		const stateStr = localStorage.getItem(NOTIFICATION_STATE_KEY);
+	function initPostInlineDiff() {
+		const sp = new URLSearchParams(window.location.search);
+		const isDebug = sp.get(DEBUG_PARAM_KEY) === "1";
+
+		const stateStr = isDebug ? sessionStorage.getItem(DEBUG_STATE_KEY) : localStorage.getItem(NOTIFICATION_STATE_KEY);
 		if (!stateStr) {
-			clearInlineDiff(container);
+            // Need to clear multiple containers
+            const content = document.querySelector(".markdown-content");
+            if (content) clearInlineDiff(content);
+            const title = document.getElementById("post-title");
+            if (title) clearInlineDiff(title); // This might be destructive if not handled carefully, but we only apply simple diff there.
+            // Actually, for title/desc, clearing means resetting to original text? 
+            // But we don't have original text easily. 
+            // However, this init runs on load. If stateStr is empty, we just do nothing.
+            // If we previously applied diff, we should probably reload page to clear? 
+            // Or just ignore clearing for title/desc since they are simple replacements.
+            if (content instanceof HTMLElement) clearInlineDiff(content);
 			return;
 		}
 
@@ -270,7 +598,8 @@
 		try {
 			state = JSON.parse(stateStr);
 		} catch {
-			clearInlineDiff(container);
+            const content = document.querySelector(".markdown-content");
+            if (content instanceof HTMLElement) clearInlineDiff(content);
 			return;
 		}
 
@@ -284,34 +613,54 @@
 			return guidPath === currentPath || linkPath === currentPath;
 		});
 
-		const shouldApply = (() => {
-			const sp = new URLSearchParams(window.location.search);
-			if (sp.get("diff") === "1") return true;
-			if (window.location.hash === "#post-diff") return true;
-			return false;
-		})();
+		const shouldApply = isDebug || sp.get("diff") === "1" || window.location.hash === "#post-diff";
 
 		if (!shouldApply || !matched?.diff) {
-			clearInlineDiff(container);
+            const content = document.querySelector(".markdown-content");
+            if (content instanceof HTMLElement) clearInlineDiff(content);
 			return;
 		}
 
-		applyInlineDiff(container, matched.diff);
+        const diffType = matched.diffType || 'composite';
+        
+        // Handle composite diff (object with keys) or legacy single diff
+        let diffData = matched.diff;
+        
+        // If it's the old format (array), wrap it based on diffType
+        if (Array.isArray(diffData)) {
+            if (diffType === 'title') diffData = { title: diffData };
+            else if (diffType === 'description') diffData = { description: diffData };
+            else diffData = { content: diffData };
+        } else if (diffData.diff && (diffData.diffType === 'composite' || diffData.diffType === undefined)) {
+            // Handle nested diff structure if coming from DiffDebugEditor's previous output format
+            diffData = diffData.diff;
+        }
+
+        if (diffData.title) {
+            const container = document.getElementById('post-title');
+            if (container) applySimpleDiff(container, diffData.title);
+        }
+        
+        if (diffData.description) {
+            const container = document.getElementById('post-description');
+            if (container) applySimpleDiff(container, diffData.description);
+        }
+        
+        if (diffData.content) {
+            const container = document.querySelector(".markdown-content");
+            if (container) applyInlineDiff(container, diffData.content, isDebug);
+        }
+
 		const anchor = document.getElementById("post-diff");
 		if (anchor instanceof HTMLElement) anchor.scrollIntoView({ behavior: "smooth", block: "start" });
 	}
 
 	document.addEventListener("DOMContentLoaded", initPostInlineDiff);
 	document.addEventListener("swup:contentReplaced", initPostInlineDiff);
+	window.addEventListener("fuwari:diff-debug-updated", initPostInlineDiff);
 </script>
 
 <style is:global>
-	.post-inline-diff-prefix {
-		display: inline-block;
-		width: 1.25rem;
-		opacity: 0.6;
-	}
-
 	.post-inline-diff-add-target {
 		text-decoration-line: underline;
 		text-decoration-thickness: 2px;
@@ -321,6 +670,16 @@
 
 	:global(.dark) .post-inline-diff-add-target {
 		text-decoration-color: rgb(134 239 172 / 1);
+	}
+
+	.post-inline-diff-add-target-img {
+		outline: 2px solid rgb(22 163 74 / 1);
+		outline-offset: 2px;
+		border-radius: 0.5rem;
+	}
+
+	:global(.dark) .post-inline-diff-add-target-img {
+		outline-color: rgb(134 239 172 / 1);
 	}
 
 	.post-inline-diff-del-line {
@@ -336,7 +695,70 @@
 		text-decoration-thickness: 2px;
 	}
 
+	.post-inline-diff-add-line {
+		margin: 0.5rem 0;
+		color: rgb(22 163 74 / 1);
+	}
+
+	:global(.dark) .post-inline-diff-add-line {
+		color: rgb(134 239 172 / 1);
+	}
+
+	.post-inline-diff-add-line .post-inline-diff-add-content {
+		display: inline-block;
+		vertical-align: top;
+		text-decoration-line: underline;
+		text-decoration-thickness: 2px;
+	}
+
+	.post-inline-diff-add-line img,
+	.post-inline-diff-add-content img {
+		outline: 2px solid rgb(22 163 74 / 1);
+		outline-offset: 2px;
+		border-radius: 0.5rem;
+		background-color: rgba(22, 163, 74, 0.1);
+	}
+
+	:global(.dark) .post-inline-diff-add-line img,
+	:global(.dark) .post-inline-diff-add-content img {
+		outline-color: rgb(134 239 172 / 1);
+		background-color: rgba(134, 239, 172, 0.1);
+	}
+
 	.post-inline-diff-del-line.post-inline-diff-del-line {
 		list-style: none;
+	}
+
+	.post-inline-diff-del-line img,
+	.post-inline-diff-del-line del img {
+		outline: 2px solid rgb(220 38 38 / 1);
+		outline-offset: 2px;
+		border-radius: 0.5rem;
+		opacity: 0.8;
+	}
+
+	:global(.dark) .post-inline-diff-del-line img,
+	:global(.dark) .post-inline-diff-del-line del img {
+		outline-color: rgb(252 165 165 / 1);
+	}
+
+	.post-inline-diff-del-target {
+		color: rgb(220 38 38 / 1);
+		text-decoration-line: line-through;
+		text-decoration-thickness: 2px;
+	}
+
+	:global(.dark) .post-inline-diff-del-target {
+		color: rgb(252 165 165 / 1);
+	}
+
+	.post-inline-diff-del-target-img {
+		outline: 2px solid rgb(220 38 38 / 1);
+		outline-offset: 2px;
+		border-radius: 0.5rem;
+	}
+
+	:global(.dark) .post-inline-diff-del-target-img {
+		outline-color: rgb(252 165 165 / 1);
 	}
 </style>

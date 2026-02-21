@@ -10,6 +10,7 @@ import { getDir, getPostUrlBySlug } from "@utils/url-utils";
 import { Icon } from "astro-icon/components";
 import { gitHubEditConfig, licenseConfig } from "src/config";
 import PostDiffInArticle from "@components/widget/PostDiffInArticle.astro";
+import DiffDebugEditor from "@components/widget/DiffDebugEditor.astro";
 import PostMetadata from "../../components/PostMeta.astro";
 import ImageWrapper from "../../components/misc/ImageWrapper.astro";
 import { profileConfig, siteConfig, umamiConfig } from "../../config";
@@ -107,6 +108,7 @@ const jsonLd = [
 
             <!-- title -->
             <div class="relative onload-animation">                <div
+                    id="post-title"
                     data-pagefind-body data-pagefind-weight="10" data-pagefind-meta="title"
                     class="transition w-full flex items-center font-bold mb-3
                     text-3xl md:text-[2.25rem]/[2.75rem]
@@ -122,7 +124,7 @@ const jsonLd = [
             <!-- description/excerpt -->
             {(entry.data.description || remarkPluginFrontmatter.excerpt) && (
                 <div class="onload-animation mb-4">
-                    <div class="text-black/75 dark:text-white/75 text-sm leading-relaxed">
+                    <div id="post-description" class="text-black/75 dark:text-white/75 text-sm leading-relaxed">
                         {entry.data.description || remarkPluginFrontmatter.excerpt}
                     </div>
                 </div>
@@ -148,6 +150,7 @@ const jsonLd = [
 
 
 			<PostDiffInArticle />
+			<DiffDebugEditor />
 
             <Markdown class="mb-6 markdown-content onload-animation">
                 <Content />
