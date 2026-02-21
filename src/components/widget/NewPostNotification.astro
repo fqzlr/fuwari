@@ -81,6 +81,14 @@ import { Icon } from "astro-icon/components";
     import * as Diff from 'diff';
 
     (async function() {
+    const __diffLogEnabled = (() => {
+        try {
+            const sp = new URLSearchParams(window.location.search);
+            return sp.get('__diff_log') === '1';
+        } catch {
+            return false;
+        }
+    })();
     const BASE_URL = import.meta.env.BASE_URL || '/';
     const basePath = String(BASE_URL).endsWith('/') ? String(BASE_URL).slice(0, -1) : String(BASE_URL);
     const withBasePath = (pathname) => {
@@ -106,8 +114,9 @@ import { Icon } from "astro-icon/components";
     }
     if (sp.get('__diff_debug') === '1') return;
     const DB_NAME = 'fuwari-rss-store';
-    const DB_VERSION = 3; 
-    const STORE_NAME = 'posts';
+    const DB_VERSION = 4; 
+    const STORE_OLD = 'posts';
+    const STORE_NEW = 'posts_new';
     const LOCAL_STORAGE_KEY = 'blog-posts-cache'; 
     const NOTIFICATION_ID = 'new-post-notification';
     const LIST_ID = 'new-post-list';
@@ -124,15 +133,19 @@ import { Icon } from "astro-icon/components";
             request.onsuccess = () => resolve(request.result);
             request.onupgradeneeded = (event) => {
                 const db = event.target.result;
-                if (db.objectStoreNames.contains(STORE_NAME)) {
-                    const existingStore = event.target.transaction.objectStore(STORE_NAME);
-                    if (existingStore.keyPath !== 'id') {
-                        db.deleteObjectStore(STORE_NAME);
-                        db.createObjectStore(STORE_NAME, { keyPath: 'id' });
+                const ensureStore = (name) => {
+                    if (db.objectStoreNames.contains(name)) {
+                        const existingStore = event.target.transaction.objectStore(name);
+                        if (existingStore.keyPath !== 'id') {
+                            db.deleteObjectStore(name);
+                            db.createObjectStore(name, { keyPath: 'id' });
+                        }
+                        return;
                     }
-                    return;
-                }
-                db.createObjectStore(STORE_NAME, { keyPath: 'id' });
+                    db.createObjectStore(name, { keyPath: 'id' });
+                };
+                ensureStore(STORE_OLD);
+                ensureStore(STORE_NEW);
             };
         });
     }
@@ -153,23 +166,32 @@ import { Icon } from "astro-icon/components";
         return `${SCOPE_ID}:${guid}`;
     }
 
-    function getStoredPosts(db) {
+    function getStoredPosts(db, storeName) {
         return new Promise((resolve, reject) => {
-            const transaction = db.transaction([STORE_NAME], 'readonly');
-            const store = transaction.objectStore(STORE_NAME);
+            const transaction = db.transaction([storeName], 'readonly');
+            const store = transaction.objectStore(storeName);
             const request = store.getAll();
             request.onsuccess = () => resolve(request.result);
             request.onerror = () => reject(request.error);
         });
     }
 
-    function savePosts(db, posts) {
+    function clearStore(db, storeName) {
         return new Promise((resolve, reject) => {
-            const transaction = db.transaction([STORE_NAME], 'readwrite');
-            const store = transaction.objectStore(STORE_NAME);
+            const transaction = db.transaction([storeName], 'readwrite');
+            const store = transaction.objectStore(storeName);
+            store.clear();
+            transaction.oncomplete = () => resolve();
+            transaction.onerror = () => reject(transaction.error);
+        });
+    }
+
+    function savePosts(db, storeName, posts) {
+        return new Promise((resolve, reject) => {
+            const transaction = db.transaction([storeName], 'readwrite');
+            const store = transaction.objectStore(storeName);
             
             posts.forEach(post => {
-                // Ensure we save with the scoped ID
                 const itemToSave = { ...post, id: generateId(post.guid) };
                 store.put(itemToSave);
             });
@@ -532,7 +554,14 @@ import { Icon } from "astro-icon/components";
         if (currentPosts.length === 0) return;
 
         const db = await openDB();
-        const storedPosts = await getStoredPosts(db);
+        const storedPostsOld = await getStoredPosts(db, STORE_OLD);
+        const storedPostsNew = await getStoredPosts(db, STORE_NEW);
+        let storedPosts = storedPostsOld;
+        if (storedPostsNew.length > 0) {
+            storedPosts = storedPostsNew;
+            await clearStore(db, STORE_OLD);
+            await savePosts(db, STORE_OLD, storedPostsNew);
+        }
         const NOTIFICATION_STATE_KEY = 'fuwari-notification-state';
         const INIT_TIME_KEY = 'fuwari-notification-init-time';
 
@@ -546,23 +575,29 @@ import { Icon } from "astro-icon/components";
 
         // Migration from localStorage (Old cache)
         const localCache = localStorage.getItem(LOCAL_STORAGE_KEY);
-        if (storedPosts.length === 0 && localCache) {
+        if (storedPostsOld.length === 0 && localCache) {
             console.log('[Notification] Migrating from localStorage...');
             // Just init DB and clear old cache
-            await savePosts(db, currentPosts);
+            await clearStore(db, STORE_OLD);
+            await savePosts(db, STORE_OLD, currentPosts);
+            await clearStore(db, STORE_NEW);
             localStorage.removeItem(LOCAL_STORAGE_KEY);
             // Treat as first visit (no updates)
             showNotification([], Date.now(), false, initTime); 
             return;
         }
 
-        if (storedPosts.length === 0) {
+        if (storedPostsOld.length === 0) {
             // First visit
-            await savePosts(db, currentPosts);
+            await clearStore(db, STORE_OLD);
+            await savePosts(db, STORE_OLD, currentPosts);
+            await clearStore(db, STORE_NEW);
             // Clear any stale notification state
             localStorage.removeItem(NOTIFICATION_STATE_KEY);
             showNotification([], Date.now(), false, initTime);
         } else {
+            await clearStore(db, STORE_NEW);
+            await savePosts(db, STORE_NEW, currentPosts);
             // Compare
             const storedMap = new Map(
                 storedPosts.map(p => [p.id || generateId(p.guid || p.link || p.title), p])
@@ -610,6 +645,18 @@ import { Icon } from "astro-icon/components";
                         }
                         
                         if (hasChanges) {
+                            if (__diffLogEnabled) {
+                                console.groupCollapsed('[NewPostNotification] computed diff', post.title);
+                                console.log({
+                                    link: post.link,
+                                    guid: post.guid,
+                                    titleChanged,
+                                    descriptionChanged,
+                                    contentChanged
+                                });
+                                console.log('diff.raw', result);
+                                console.groupEnd();
+                            }
                             detectedChanges.push({ 
                                 ...post, 
                                 isUpdated: true, 
@@ -629,8 +676,9 @@ import { Icon } from "astro-icon/components";
 
                 if (isAllNew || isAllUpdated) {
                     console.log('[Notification] Intercepted "all new/updated" posts scenario. Suppressing notification.');
-                    // Update DB to sync with new state
-                    await savePosts(db, currentPosts);
+                    await clearStore(db, STORE_OLD);
+                    await savePosts(db, STORE_OLD, currentPosts);
+                    await clearStore(db, STORE_NEW);
                     // Clear state
                     localStorage.removeItem(NOTIFICATION_STATE_KEY);
                     showNotification([], Date.now(), false, initTime);
@@ -645,9 +693,6 @@ import { Icon } from "astro-icon/components";
                     items: detectedChanges
                 };
                 localStorage.setItem(NOTIFICATION_STATE_KEY, JSON.stringify(state));
-                
-                // Update DB so we don't detect them again as "fresh" next time
-                await savePosts(db, currentPosts);
                 
                 // Show with Red Dot + Auto Open
                 showNotification(detectedChanges, timestamp, true, initTime);

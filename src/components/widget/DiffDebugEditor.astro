@@ -217,6 +217,16 @@
 		return { diff: result, diffType: 'composite' };
 	}
 
+	function isLogEnabled() {
+		try {
+			const sp = new URLSearchParams(window.location.search);
+			if (sp.get("__diff_log") === "1") return true;
+			if (sp.get(DEBUG_PARAM_KEY) === "1") return true;
+		} catch {
+		}
+		return window.__fuwariDiffLog === true;
+	}
+
 	function ensureDiffUrl() {
 		const url = new URL(window.location.href);
 		if (!url.searchParams.has(DEBUG_PARAM_KEY)) url.searchParams.set(DEBUG_PARAM_KEY, "1");
@@ -398,6 +408,15 @@
 			if (!diffResult) {
 				status.textContent = "未检测到任何变更";
 				return;
+			}
+
+			if (isLogEnabled()) {
+				console.groupCollapsed("[DiffDebugEditor] diffResult");
+				console.log({ path: model.path, link: model.post.link, guid: model.post.guid });
+				console.log("diff.raw", diffResult);
+				console.log("old.raw", oldRec);
+				console.log("new.raw", newRec);
+				console.groupEnd();
 			}
 
 			setDebugStateForCurrentPost(model.post, diffResult);

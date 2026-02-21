@@ -10,6 +10,16 @@ type DiffPart = { added?: boolean; removed?: boolean; value?: string };
 type DiffRow = { type: "add" | "del" | "ctx"; text: string };
 type DiffHunk = DiffRow[];
 
+function isLogEnabled() {
+	try {
+		const sp = new URLSearchParams(window.location.search);
+		if (sp.get("__diff_log") === "1") return true;
+		if (sp.get("__diff_debug") === "1") return true;
+	} catch {
+	}
+	return (window as any).__fuwariDiffLog === true;
+}
+
 function normalizeGuid(guid: string, link: string) {
 	const value = (guid || link || "").trim();
 	if (!value) return "";
@@ -366,12 +376,33 @@ function applyInlineTextDiff(targetTextNodes: Text | Text[], oldText: string, ne
 }
 
 function tryApplyInlineReplace(targetEl: HTMLElement, oldHtml: string, newHtml: string, anchorState: { inserted: boolean }) {
+	const log = isLogEnabled();
 	const oldEl = parseHtmlSingleElement(oldHtml);
 	const newEl = parseHtmlSingleElement(newHtml);
-	if (!(oldEl instanceof HTMLElement) || !(newEl instanceof HTMLElement)) return false;
-	if (oldEl.tagName !== newEl.tagName) return false;
-	if (targetEl.tagName !== oldEl.tagName) return false;
-	if (normalizeLineText(oldEl.textContent || "") !== normalizeLineText(targetEl.textContent || "")) return false;
+	if (!(oldEl instanceof HTMLElement) || !(newEl instanceof HTMLElement)) {
+		if (log) console.log("[post-inline-diff] inline-replace: parse failed", { oldHtml, newHtml });
+		return false;
+	}
+	if (oldEl.tagName !== newEl.tagName) {
+		if (log) console.log("[post-inline-diff] inline-replace: tag mismatch", { oldTag: oldEl.tagName, newTag: newEl.tagName, oldHtml, newHtml });
+		return false;
+	}
+	if (targetEl.tagName !== oldEl.tagName) {
+		if (log) console.log("[post-inline-diff] inline-replace: target tag mismatch", { targetTag: targetEl.tagName, oldTag: oldEl.tagName, oldHtml });
+		return false;
+	}
+	const oldTextNorm = normalizeLineText(oldEl.textContent || "");
+	const newTextNorm = normalizeLineText(newEl.textContent || "");
+	const targetTextNorm = normalizeLineText(targetEl.textContent || "");
+	if (oldTextNorm !== targetTextNorm && newTextNorm !== targetTextNorm) {
+		if (log) {
+			console.groupCollapsed("[post-inline-diff] inline-replace: textContent mismatch");
+			console.log({ oldTextNorm, newTextNorm, targetTextNorm });
+			console.log({ oldHtml, newHtml });
+			console.groupEnd();
+		}
+		return false;
+	}
 
 	const tokenize = (el: HTMLElement) => {
 		const out: Array<
@@ -406,21 +437,38 @@ function tryApplyInlineReplace(targetEl: HTMLElement, oldHtml: string, newHtml: 
 		const aTok = tokenize(a);
 		const bTok = tokenize(b);
 		const tTok = tokenize(t);
-		if (!aTok || !bTok || !tTok) return false;
-		if (aTok.length !== bTok.length || aTok.length !== tTok.length) return false;
+		if (!aTok || !bTok || !tTok) {
+			if (log) console.log("[post-inline-diff] inline-replace: tokenize failed", { oldHtml, newHtml });
+			return false;
+		}
+		if (aTok.length !== bTok.length || aTok.length !== tTok.length) {
+			if (log) {
+				console.groupCollapsed("[post-inline-diff] inline-replace: token length mismatch");
+				console.log({ aLen: aTok.length, bLen: bTok.length, tLen: tTok.length });
+				console.log({ oldHtml, newHtml });
+				console.groupEnd();
+			}
+			return false;
+		}
 
 		for (let i = aTok.length - 1; i >= 0; i -= 1) {
 			const at = aTok[i];
 			const bt = bTok[i];
 			const tt = tTok[i];
-			if (at.kind !== bt.kind || at.kind !== tt.kind) return false;
+			if (at.kind !== bt.kind || at.kind !== tt.kind) {
+				if (log) console.log("[post-inline-diff] inline-replace: token kind mismatch", { at: at.kind, bt: bt.kind, tt: tt.kind, oldHtml, newHtml });
+				return false;
+			}
 			if (at.kind === "text") {
 				const did = applyInlineTextDiff(tt.nodes, at.text, bt.text, anchorState);
 				if (did) changed = true;
 				continue;
 			}
 			if (at.kind === "el") {
-				if (at.node.tagName !== bt.node.tagName || at.node.tagName !== tt.node.tagName) return false;
+				if (at.node.tagName !== bt.node.tagName || at.node.tagName !== tt.node.tagName) {
+					if (log) console.log("[post-inline-diff] inline-replace: element tag mismatch", { a: at.node.tagName, b: bt.node.tagName, t: tt.node.tagName });
+					return false;
+				}
 				stack.push({ a: at.node, b: bt.node, t: tt.node });
 				continue;
 			}
@@ -432,6 +480,7 @@ function tryApplyInlineReplace(targetEl: HTMLElement, oldHtml: string, newHtml: 
 }
 
 function applyInlineDiff(container: HTMLElement, diffParts: DiffPart[]) {
+	const log = isLogEnabled();
 	clearInlineDiff(container);
 	const rows = buildRows(diffParts);
 	const focused = sliceWithContext(rows);
@@ -451,9 +500,19 @@ function applyInlineDiff(container: HTMLElement, diffParts: DiffPart[]) {
 				if (isReplace) {
 					const oldHtml = row.type === "del" ? row.text : next.text;
 					const newHtml = row.type === "add" ? row.text : next.text;
-					const target = findBlockByText(container, oldHtml);
+					const target = findBlockByText(container, oldHtml) || findBlockByText(container, newHtml);
+					if (!(target instanceof HTMLElement)) {
+						if (log) console.log("[post-inline-diff] replace-pair: target not found", { oldHtml });
+					}
 					if (target instanceof HTMLElement) {
+						if (log) {
+							console.groupCollapsed("[post-inline-diff] replace-pair attempt");
+							console.log({ oldHtml, newHtml });
+							console.log({ targetTag: target.tagName, targetText: target.textContent });
+							console.groupEnd();
+						}
 						const applied = tryApplyInlineReplace(target, oldHtml, newHtml, anchorState);
+						if (log) console.log("[post-inline-diff] replace-pair result", { applied });
 						if (applied) {
 							idx += 2;
 							continue;
@@ -593,6 +652,7 @@ function applySimpleDiff(container: HTMLElement, diffParts: DiffPart[]) {
 }
 
 export function initPostInlineDiff() {
+	const log = isLogEnabled();
 	const sp = new URLSearchParams(window.location.search);
 	const isDebug = sp.get(DEBUG_PARAM_KEY) === "1";
 
@@ -624,6 +684,30 @@ export function initPostInlineDiff() {
 	});
 
 	const shouldApply = isDebug || sp.get("diff") === "1" || window.location.hash === "#post-diff";
+	if (log) {
+		console.groupCollapsed("[post-inline-diff] init");
+		console.log({
+			isDebug,
+			shouldApply,
+			currentPath,
+			currentStripped,
+			hasMatched: !!matched,
+			source: isDebug ? "sessionStorage:fuwari-diff-debug-state" : "localStorage:fuwari-notification-state",
+		});
+		if (matched) {
+			console.log({
+				title: matched.title,
+				link: matched.link,
+				guid: matched.guid,
+				diffType: matched.diffType,
+				diffKeys: matched.diff ? Object.keys(matched.diff) : [],
+			});
+			if (matched?.diff?.content) console.log({ contentDiffParts: matched.diff.content });
+			if (matched?.diff?.title) console.log({ titleDiffParts: matched.diff.title });
+			if (matched?.diff?.description) console.log({ descDiffParts: matched.diff.description });
+		}
+		console.groupEnd();
+	}
 
 	if (!shouldApply || !matched?.diff) {
 		const content = document.querySelector(".markdown-content");
