@@ -6,6 +6,7 @@ image: ../assets/images/unknown-upload.webp
 tags:
   - EdgeOne
   - 对象存储
+  - Python
 draft: false
 lang: ""
 ---
@@ -22,19 +23,28 @@ https://www.bilibili.com/video/BV1Hz1DBZEov/
 1. 基于Web网页，制作一个前端页面，必须包含一个 `input file` 。上传完成打印上传完成
 2. 后端将文件放到一个存储空间。该存储空间必须在家庭网络内较方便的访问
 
-# 梳理思路，决定架构
+# 方案对比
 
-一开始我想用一种最简单的方法，这种方法无需编写任何代码。那就是使用 [【花生壳HFS for win 正式版】使用教程-贝锐花生壳官网](https://hsk.oray.com/news/14884.html) 。我只需要将该软件部署在我的家庭电脑，然后通过CDN将服务映射到公网即可。但这会遇到几个问题：
-1. 若我的家庭电脑离线，服务将不可用
-2. 使用时会占用家中的下载带宽
+这里提供两种方案，各有优劣：
+
+| | 方案一：对象存储 | 方案二：本地服务器 |
+|---|---|---|
+| 稳定性 | ⭐⭐⭐⭐⭐ 不依赖本地设备 | ⭐⭐ 需要家庭电脑在线 |
+| 复杂度 | ⭐⭐⭐ 需要配置云函数 | ⭐⭐⭐⭐⭐ 一行命令启动 |
+| 成本 | 对象存储费用 | 无（家庭带宽） |
+| 适用场景 | 需要稳定运行 | 家庭电脑常在线 |
+
+# 方案一：EdgeOne Pages + 对象存储
+
+如果你希望服务稳定运行，不依赖家庭设备在线状态，那么对象存储方案更适合你。
+
+## 梳理思路
+
+借助对象存储，我只需要找一个云函数连接到我的对象存储，然后提供一个上传端点即可。
 
 ![](../assets/images/unknown-upload-1.webp)
 
-那么换个思路，我们是否可以借助对象存储？
-
-当然可以，我只需要找一个云函数连接到我的对象存储，然后提供一个上传端点
-
-# 正式开始
+## 正式开始
 
 于是我找到了EdgeOne Pages，它的Functions非常适合做这件事，且支持原生Node运行时，也就是 `node-functions` 直接使用 `AWS-S3` 这个NPM包再做一个最简单的前端上传页面，搞定！
 
@@ -44,4 +54,48 @@ https://www.bilibili.com/video/BV1Hz1DBZEov/
 
 该项目已开源 [afoim/EdgeOnePageFunctionUnknownUploader-S3-](https://github.com/afoim/EdgeOnePageFunctionUnknownUploader-S3-)
 
+# 方案二：Python uploadserver
 
+> 更推荐： https://github.com/svenstaro/miniserve
+
+如果你的家庭电脑通常保持在线，且追求简单易用，那么在自家电脑启动一个匿名文件上载器也是个不错的选择。
+
+## 安装
+
+确保你安装了 **Python**
+
+安装 **uploadserver**
+```bash
+pip install --user uploadserver
+```
+
+接下来，创建并进入一个新文件夹，作为 **上传目录**
+```bash
+mkdir upload
+cd upload
+```
+
+运行，并监听 **IPv4** 的 **8000端口**
+```bash
+python -m uploadserver 8000
+```
+
+又或者，监听 **IPv6** 的 **8000端口** 
+```bash
+python -m uploadserver --bind :: 8000
+```
+
+接下来，你就可以在内网环境使用这个 **文件上载器** 了
+![](../assets/images/py-uploadserver.webp)
+
+## 打到公网
+
+### 方法一：使用EdgeOne进行IPv6回源
+
+将你的IPv6做 **DDNS** ，然后使用EdgeOne回源
+![](../assets/images/py-uploadserver-1.webp)
+
+### 方法二：STUN（仅NAT1可用）
+
+当你的家庭网络为 **NAT1** ，则可以使用类似这样的软件将你的 **内网端口** 直接打到 **公网端口** （貌似该程序对TCP分片敏感，会导致RST） [MikeWang000000/Natter: Expose your TCP/UDP port behind full-cone NAT to the Internet.](https://github.com/MikeWang000000/Natter) 
+![](../assets/images/py-uploadserver-2.webp)
