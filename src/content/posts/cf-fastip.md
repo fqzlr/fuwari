@@ -234,7 +234,9 @@ Cloudflare SaaS是一个不需要你改变一个域名的NS服务器，就可以
 当一个域名被SaaS到一个已经在Cloudflare的域名后，它就完整受益所有Cloudflare服务。如我将 umami.acofork.com SaaS 到 2x.nz，我就可以在 2x.nz 里为 umami.acofork.com 写规则了：
 
 ![](../assets/images/cf-saas-1.webp)
+
 ![](../assets/images/cf-saas-2.webp)
+
 ![](../assets/images/cf-saas-3.webp)
 
 Worker中的路由规则也适用：
@@ -308,6 +310,7 @@ Worker中的路由规则也适用：
 1. 在Workers中添加路由，然后直接将你的路由域名从指向`xxx.worker.dev`改为优选域名即可
 2. 如果是外域，SaaS后再添加路由即可，就像：
    ![](../assets/images/cf-fastip-12.webp)
+
    ![](../assets/images/cf-fastip-13.webp)
 
 # 针对于Cloudflare Tunnel（ZeroTrust）
@@ -315,6 +318,7 @@ Worker中的路由规则也适用：
 请先参照 [传统SaaS优选](#传统saas优选) 设置完毕，源站即为 Cloudflare Tunnel。正常做完SaaS接入即可：
 
 ![](../assets/images/cf-fastip-3.webp)
+
 ![](../assets/images/cf-fastip-2.webp)
 
 

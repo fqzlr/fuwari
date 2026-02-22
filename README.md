@@ -91,6 +91,20 @@ pnpm clean
 pnpm del-space
 ```
 
+### 修复相邻图片空行
+
+扫描 `src/content/**/*.md`，当两张图片紧挨着（连续两行 `![](...)`）时，在中间插入一个空行，避免渲染与 diff 匹配受相邻图片影响。
+
+```bash
+pnpm imgf
+```
+
+仅检测不写入：
+
+```bash
+pnpm imgf --check
+```
+
 ### 配置博客
 
 编辑 `src/config.ts` 文件来自定义博客配置：

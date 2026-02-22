@@ -41,6 +41,7 @@ lang: ""
 前往 [RouterPassView - 从 Windows 上的路由器备份文件中恢复丢失的密码](https://www.nirsoft.net/utils/router_password_recovery.html) 下载
 
 ![](../assets/images/zte-f450-bridge.webp)
+
 ![](../assets/images/zte-f450-bridge-1.webp)
 
 解压并使用 `RouterPassView` 打开 `db_user_cfg.xml` 

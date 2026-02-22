@@ -26,6 +26,7 @@ lang: ""
 ![](../assets/images/mac-1.webp)
 生态。有人说，Mac有什么生态，封闭的要死，是死是活都要看Apple脸色。确实，App Store的审核及其严格，我目前安装的大部分软件都并未上架到AppStore，但是，这并不代表Mac上软件生态烂。在Mac上，安装软件有三种方式，1.AppStore 2.浏览器下载 `.dmg` 文件，双机后拖放到应用程序文件夹 3.浏览器下载 `.pkg` 文件，双击后会弹出安装向导，一路下一步即可完成安装。绝大多数软件都是使用后两种方式安装的，其实主要还是AppStore上的软件要交苹果开发者税，而第三方侧载就不用考虑这么多了。当然，毕竟换了一个系统，对于小开发者做的开源软件，可能并没有给Mac打包一个预构建的文件，这就需要你拉源码来自己编译运行了，比如 `https://github.com/WEIFENG2333/VideoCaptioner` ，这有时候也是好事，能帮助你了解软件开发、构建与发布
 ![](../assets/images/mac-3.webp)
+
 ![](../assets/images/mac-4.webp)
 # Mac的快速上手
 安装Brew（类似Debian Linux的apt高级软件包管理器）。安装完毕后即可用 `brew install python` 来安装各个软件包了

@@ -21,6 +21,7 @@ lang: ""
 ![](../assets/images/manosaba-unzip-3.webp)
 此时在 **AssetRipper** 中我们选择 `文件 - 打开文件夹` 并粘贴路径，并进入 `*_Data` 文件夹，这里为 **manosaba_Data** 
 ![](../assets/images/manosaba-unzip.webp)
+
 ![](../assets/images/manosaba-unzip-5.webp)
 接下来会进入漫长的等待时间。网页会卡在加载，我们可以查看一并打开的命令窗口确认资源载入进度
 当你发现 **查看已导入文件** 可被点击后，方可继续

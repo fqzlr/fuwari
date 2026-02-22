@@ -39,7 +39,9 @@ Umami，用于在网站插入一个JS来进行访客统计以及展示访客信�
 
 国内使用对应CDN的Page业务，海外使用Cloudflare Worker。至于为什么不将 `blog.acofork.com` 也放在EdgeOne Page，一是因为EdgeOne CDN和Page的WAF规则是分开的，而Page业务的WAF规则不是很好做海外封锁，二是因为EO在之前被打的时候将这个子域封了。而ESA Page可以很简单做到海外封禁
 ![](../assets/images/fenliu-4.webp)
+
 ![](../assets/images/fenliu-5.webp)
+
 ![](../assets/images/fenliu-16.webp)
 ### 动态型
 
@@ -52,6 +54,7 @@ Umami，用于在网站插入一个JS来进行访客统计以及展示访客信�
 
 利用浏览器JavaScript发送HEAD请求拿取对端响应头Server字段并回显（若跨域则需要设置 **Access-Control-Expose-Headers** 响应头，值为 **server**
 ![](../assets/images/fenliu-12.webp)
+
 ![](../assets/images/ae6f93ce318fa428e94256c2b4a501e1.webp)
 
 # 注意事项
@@ -66,11 +69,13 @@ Umami，用于在网站插入一个JS来进行访客统计以及展示访客信�
 - Cloudflare SaaS 在接入外部域名时，非常建议选择 HTTP验证来签发SSL，下文会详细说明该验证模式的好处。我们都知道，Cloudflare SaaS 在创建的时候，对于申请SSL默认选项是 TXT验证，但是该方式并不好，我们都知道，使用TXT验证的确可以签发证书，但在3月后（上一个SSL证书过期后），我们需要及时更新TXT记录来重新申领新的SSL证书，但是HTTP验证就不是这样了，Cloudflare CDN会自动在边缘节点放上HTTP验证的文件，并且Cloudflare可以随时更改，这样，你就不需要在申领新SSL的时候做任何事情了，一切都由Cloudflare自动实现
 - Cloudflare SaaS接入外部域名后，对于该外部域名是可以享有所有Cloudflare单域名下服务（也包括Cloudflare Worker，参见： [Cloudflare Worker 优选](/posts/cf-fastip/#%E9%92%88%E5%AF%B9%E4%BA%8Ecloudflare-workers/)）。也可以配置规则等业务，你最终访问的是哪个域名就写哪个主机名，不要写回退源的主机名，除非你想让该规则仅在直接访问回退源时生效
 ![](../assets/images/fenliu-11.webp)
+
 ![](../assets/images/fenliu-10.webp)
 - Cloudflare Tunnel实际上是可以自定义生效的域名的，并非仅局限于账户内域名（虽然你在控制台看着是这样），我们可以通过抓包更改请求体来实现各种各样的域名，它没有验证，详见：[Cloudflare Tunnel 优选](/posts/cf-fastip/#%E9%92%88%E5%AF%B9%E4%BA%8Ecloudflare-tunnelzerotrust/)
 ![](../assets/images/fenliu-13.webp)
 - 分流做完后，一定要针对国内节点启用封锁海外模式，这能大大降低被DDoS致使CDN商给你域名取消接入的概率。Cloudflare随你，因为打不死，如果你的源站Hold不住，也请配置点策略。因为刷子（DDoS发起者可以通过强行绑定域名和IP来通过便宜量大的海外IP来攻击你脆弱的国内节点，如果什么防护都不做，很可能被刷几个TB的异常流量然后被CDN取消接入）
 ![](../assets/images/fenliu-14.webp)
+
 ![](../assets/images/fenliu-15.webp)
 # 成果展示
 

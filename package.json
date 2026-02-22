@@ -11,6 +11,7 @@
 		"type-check": "tsc --noEmit --isolatedDeclarations",
 		"new-post": "node scripts/new-post.js",
 		"clean": "node scripts/clean-unused-images.js",
+		"imgf": "node scripts/imgf.js",
 		"del-space": "node scripts/del-space.js",
 		"update-diff": "node scripts/update-diff.js",
 		"watermark": "node scripts/add-watermark.js",

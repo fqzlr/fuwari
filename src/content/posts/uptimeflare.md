@@ -36,6 +36,7 @@ lang: ""
 - **前端**：放在Cloudflare Page，用于给用户展示zhandianzhuangt
 - **后端**：放在Cloudflare Worker，通过 Worker 自带的 **Cron** 每分钟 检查站点状态，并将状态持久化进 **D1** 
 ![](../assets/images/uptimeflare-1.webp)
+
 ![](../assets/images/uptimeflare-14.webp)
 
 # 正式开始

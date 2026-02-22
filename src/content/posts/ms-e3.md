@@ -50,6 +50,7 @@ lang: ""
 
 回到 管理中心 选择 用户-活跃用户-管理角色-OneDrive，强制扩容
 ![](../assets/images/ms-e3-8.webp)
+
 ![](../assets/images/ms-e3-9.webp)
 
 用刚才讲过的方法进入OneDrive，成功扩容

@@ -73,6 +73,7 @@ Win11有但Win10没有的东西会消失，两者都有的会保留。专为Win1
 
 解压出 `ei.cfg` 和 `setupcompat.dll` 。将其复制到ISO文件夹下的 `sources` 文件夹并替换其中已有的文件
 ![](../assets/images/win11-to-win10-13.webp)
+
 ![](../assets/images/explorer_9vcYIunVJH.gif)
 
 打开 `setup1.exe` ，**更改 Windows 安装程序下载更新的方式**，选择 **不是现在**，然后一路下一步

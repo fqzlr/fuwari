@@ -38,6 +38,7 @@ lang: ""
 
 接下来我们查看 `website` 这张表，将 `website_event.csv` 打开，查看旧的 `website_id` 将新的ID改为旧的，这样才能数据匹配
 ![](../assets/images/umami-migration-5.webp)
+
 ![](../assets/images/umami-migration-6.webp)
 
 接下来，我们正式开始数据导入，由于导入后的数据有两个 `session_id` 字段，而在Umami自我管理的过程中这个 `session_id` 字段是 **唯一约束的** ，我们需要先解除这个限制，在正式上线前还要再加回这个限制（后面会说）
@@ -61,10 +62,13 @@ DROP INDEX session_session_id_key;
 确保数据库中的表头顺序和CSV文件中的表头顺序一一对应，顺序一致，不多不少后，**Ctrl + S 保存** CSV文件，我们开始导入并在选项中勾选 **标题**
 
 ![](../assets/images/umami-migration-9.webp)
+
 ![](../assets/images/umami-migration-10.webp)
+
 ![](../assets/images/umami-migration-11.webp)
 导入成功后如图
 ![](../assets/images/umami-migration-12.webp)
+
 ![](../assets/images/umami-migration-13.webp)
 
 再编辑 `session` 这张表，手法同上，导入成功后如图
